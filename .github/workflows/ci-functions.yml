@@ -4,7 +4,7 @@ on:
     branches: [ "*" ]
     paths:
       - "ci-functions.yml"
-      - "/functions/**"
+      - "functions/**"
 defaults:
   run:
     shell: bash -eu {0}
