@@ -1,0 +1,29 @@
+name: Functions CI
+on:
+  push:
+    branches: [ "*" ]
+    paths:
+      - "ci-functions.yml"
+      - "/functions/**"
+defaults:
+  run:
+    shell: bash -eu {0}
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build Docker images
+        run: docker build -t ghcr.io/arikkfir/kude/functions/annotate:${{ github.sha }} .
+        working-directory: /functions/annotate
+      - name: Tag Docker images
+        run: |
+          docker tag ghcr.io/arikkfir/kude/functions/annotate:${{ github.sha }} ghcr.io/arikkfir/kude/functions/annotate:${GITHUB_REF::7}
+          docker tag ghcr.io/arikkfir/kude/functions/annotate:${{ github.sha }} ghcr.io/arikkfir/kude/functions/annotate:latest
+      - name: Push Docker images
+        run: |
+          docker push ghcr.io/arikkfir/kude/functions/annotate:${{ github.sha }}
+          docker push ghcr.io/arikkfir/kude/functions/annotate:${GITHUB_REF::7}
+          docker push ghcr.io/arikkfir/kude/functions/annotate:latest
