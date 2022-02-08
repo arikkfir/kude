@@ -29,6 +29,7 @@ func transform(resources []*yaml.RNode) ([]*yaml.RNode, error) {
 }
 
 func main() {
+
 	//
 	// Read the config file
 	//
