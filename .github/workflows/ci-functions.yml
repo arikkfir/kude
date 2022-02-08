@@ -2,9 +2,6 @@ name: Functions CI
 on:
   push:
     branches: [ "*" ]
-    paths:
-      - "ci-functions.yml"
-      - "functions/*"
 defaults:
   run:
     shell: bash -eu {0}
