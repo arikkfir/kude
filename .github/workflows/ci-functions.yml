@@ -9,11 +9,22 @@ defaults:
   run:
     shell: bash -eu {0}
 jobs:
-  build:
+  discover-functions:
     runs-on: ubuntu-20.04
+    timeout-minutes: 1
+    outputs:
+      functions: ${{ steps.discover.outputs.functions }}
+    steps:
+      - uses: actions/checkout@v2
+      - id: discover
+        run: echo "::set-output name=functions::$(ls -d * | jq -R -s -c 'split("\n")[:-1]')"
+        working-directory: functions
+  build-functions:
+    runs-on: ubuntu-20.04
+    needs: [ discover-functions ]
     strategy:
       matrix:
-        function: [ annotate, label ]
+        function: ${{fromJson(needs.discover-functions.outputs.functions)}}
     timeout-minutes: 15
     permissions:
       contents: read
