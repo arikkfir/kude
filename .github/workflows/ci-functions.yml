@@ -19,7 +19,7 @@ jobs:
       - id: discover
         run: echo "::set-output name=functions::$(ls -d * | jq -R -s -c 'split("\n")[:-1]')"
         working-directory: functions
-  build-functions:
+  build:
     runs-on: ubuntu-20.04
     needs: [ discover-functions ]
     strategy:
