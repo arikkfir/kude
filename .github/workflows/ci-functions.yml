@@ -11,28 +11,27 @@ defaults:
 jobs:
   build:
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        function: [ annotate, label ]
     timeout-minutes: 15
     permissions:
       contents: read
       packages: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-      - name: Log in to the GitHub Container registry
-        uses: docker/login-action@v1
+      - uses: actions/checkout@v2
+      - uses: docker/login-action@v1
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build Docker images
-        run: docker build -t ghcr.io/arikkfir/kude/functions/annotate:${{ github.sha }} .
-        working-directory: functions/annotate
-      - name: Tag Docker images
+      - run: docker build -t ghcr.io/arikkfir/kude/functions/${{ matrix.function }}:${{ github.sha }} .
+        working-directory: functions/${{ matrix.function }}
+      - run: docker tag ghcr.io/arikkfir/kude/functions/${{ matrix.function }}:${{ github.sha }} ghcr.io/arikkfir/kude/functions/${{ matrix.function }}:${GITHUB_SHA::7}
+      - run: |
+          docker push ghcr.io/arikkfir/kude/functions/${{ matrix.function }}:${{ github.sha }}
+          docker push ghcr.io/arikkfir/kude/functions/${{ matrix.function }}:${GITHUB_SHA::7}
+      - if: ${{ github.ref }} == "refs/heads/main"
         run: |
-          docker tag ghcr.io/arikkfir/kude/functions/annotate:${{ github.sha }} ghcr.io/arikkfir/kude/functions/annotate:${GITHUB_SHA::7}
-          docker tag ghcr.io/arikkfir/kude/functions/annotate:${{ github.sha }} ghcr.io/arikkfir/kude/functions/annotate:latest
-      - name: Push Docker images
-        run: |
-          docker push ghcr.io/arikkfir/kude/functions/annotate:${{ github.sha }}
-          docker push ghcr.io/arikkfir/kude/functions/annotate:${GITHUB_SHA::7}
-          docker push ghcr.io/arikkfir/kude/functions/annotate:latest
+          docker tag ghcr.io/arikkfir/kude/functions/${{ matrix.function }}:${{ github.sha }} ghcr.io/arikkfir/kude/functions/${{ matrix.function }}:latest
+          docker push ghcr.io/arikkfir/kude/functions/${{ matrix.function }}:latest
