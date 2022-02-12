@@ -42,6 +42,7 @@ jobs:
         function: ${{fromJson(needs.discover-functions.outputs.functions)}}
   build-cli:
     name: Build CLI ${{ matrix.os }}
+    needs: [ build-functions ]
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
@@ -50,6 +51,8 @@ jobs:
           go-version: 1.17
       - run: go mod download
       - run: go vet ./cli/... ./internal/... ./test/...
+      - run: find . -type f -name kude.yaml | xargs -i@ sed -ir 's/(ghcr.io\/arikkfir\/kude\/functions\/[^:]+):test/\1:${{ github.sha }}/g' @
+        working-directory: test
       - run: go test ./internal/... -coverprofile=coverage.out # TODO: publish coverage in PR
       - run: go build -o kude-${{ matrix.os }} cli/main.go
         env:
