@@ -49,7 +49,7 @@ jobs:
         with:
           go-version: 1.17
       - run: go mod download
-      - run: go vet
+      - run: go vet ./cli/... ./internal/... ./test/...
       - run: go test test/... -coverprofile=coverage.out # TODO: publish coverage in PR
       - run: go build -o kude-${{ matrix.os }} cli/main.go
         env:
