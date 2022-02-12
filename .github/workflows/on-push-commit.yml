@@ -1,7 +1,7 @@
 name: Build
 on:
   push:
-    branches: [ * ]
+    branches: [ '*' ]
 defaults:
   run:
     shell: bash -eu {0}
