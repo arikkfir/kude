@@ -16,7 +16,8 @@ ENV GO111MODULE="on"
 RUN go build -o label main.go
 
 ### Target layer
-FROM gcr.io/distroless/static:nonroot
+#FROM gcr.io/distroless/static:nonroot
+FROM alpine:3.15
 WORKDIR /
 COPY --from=builder /workspace/label ./label
 ENV GOTRACEBACK=all
