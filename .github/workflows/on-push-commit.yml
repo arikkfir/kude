@@ -42,7 +42,6 @@ jobs:
         function: ${{fromJson(needs.discover-functions.outputs.functions)}}
   build-cli:
     name: Build CLI ${{ matrix.os }}
-    needs: [ build-functions ]
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
