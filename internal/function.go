@@ -187,17 +187,15 @@ func (f *Function) invokeFunction(r io.Reader, w io.Writer) error {
 	//
 	logger.Debug("Waiting for Docker container to finish...")
 	statusCh, errCh := dockerClient.ContainerWait(ctx, cont.ID, container.WaitConditionNotRunning)
+	var exit container.ContainerWaitOKBody
 	select {
 	case err := <-errCh:
 		if err != nil {
 			return fmt.Errorf("failed waiting for container of function '%s' to exit: %w", f.Name, err)
+		} else {
+			return fmt.Errorf("failed waiting for container of function '%s' to exit: nil", f.Name)
 		}
-	case exit := <-statusCh:
-		if exit.Error != nil {
-			return fmt.Errorf("container for function '%s' exited with error: %s", f.Name, exit.Error.Message)
-		} else if exit.StatusCode != 0 {
-			return fmt.Errorf("container for function '%s' exited with status code: %d", f.Name, exit.StatusCode)
-		}
+	case exit = <-statusCh:
 		logger.WithField("exitCode", exit.StatusCode).Debug("Container exited")
 	}
 
@@ -239,6 +237,15 @@ func (f *Function) invokeFunction(r io.Reader, w io.Writer) error {
 	err = stream.addReader(pr)
 	if err != nil {
 		return fmt.Errorf("failed reading function output: %w", err)
+	}
+
+	//
+	// Fail if container failed
+	//
+	if exit.Error != nil {
+		return fmt.Errorf("container for function '%s' exited with error: %s", f.Name, exit.Error.Message)
+	} else if exit.StatusCode != 0 {
+		return fmt.Errorf("container for function '%s' exited with status code: %d", f.Name, exit.StatusCode)
 	}
 	return nil
 }
