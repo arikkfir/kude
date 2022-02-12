@@ -60,7 +60,7 @@ func CreatePipeline(dir string) (*Pipeline, error) {
 		function := &pipeline.Functions[i]
 		function.pwd = pipeline.pwd
 		if function.Name == "" {
-			function.Name = "devbot-function-" + strconv.Itoa(i)
+			function.Name = "kude-function-" + strconv.Itoa(i)
 		}
 	}
 	return &pipeline, nil

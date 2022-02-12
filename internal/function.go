@@ -121,15 +121,15 @@ func (f *Function) invokeFunction(r io.Reader, w io.Writer) error {
 			StdinOnce:    true,
 			User:         f.User,
 			Env: []string{
-				"DEVBOT=true",
-				"DEVBOT_VERSION=" + Version,
+				"KUDE=true",
+				"KUDE_VERSION=" + Version,
 			},
 			Image:           f.Image,
 			Entrypoint:      f.Entrypoint,
 			NetworkDisabled: true,
 			Labels: map[string]string{
-				"devbot":        "true",
-				"devbotVersion": Version,
+				"kude":        "true",
+				"kudeVersion": Version,
 			},
 		},
 		&container.HostConfig{
