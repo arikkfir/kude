@@ -195,6 +195,8 @@ func (f *Function) invokeFunction(r io.Reader, w io.Writer) error {
 	case exit := <-statusCh:
 		if exit.Error != nil {
 			return fmt.Errorf("container for function '%s' exited with error: %s", f.Name, exit.Error.Message)
+		} else if exit.StatusCode != 0 {
+			return fmt.Errorf("container for function '%s' exited with status code: %d", f.Name, exit.StatusCode)
 		}
 		logger.WithField("exitCode", exit.StatusCode).Debug("Container exited")
 	}
