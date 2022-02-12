@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$comment": "https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes",
+  "title": "GitHub Release Notes settings",
+  "description": "Configuring auto-generated release notes",
+  "type": "object",
+  "properties": {
+    "changelog": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }
+}
