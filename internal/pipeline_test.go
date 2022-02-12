@@ -58,9 +58,11 @@ func TestDeployments(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	err := test.BuildFunctionDockerImages()
-	if err != nil {
-		panic(err)
+	if os.Getenv("BUILD_FUNCTIONS") == "1" {
+		err := test.BuildFunctionDockerImages()
+		if err != nil {
+			panic(err)
+		}
 	}
 	os.Exit(m.Run())
 }
