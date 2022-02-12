@@ -1,0 +1,4 @@
+apiVersion: kude.kfirs.com/v1alpha1
+kind: Pipeline
+resources:
+  - deployment.yaml
