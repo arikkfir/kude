@@ -1,12 +1,12 @@
 package main
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
-	"time"
 )
 
 // Config is the configuration for the annotate function.
@@ -31,13 +31,18 @@ func transform(resources []*yaml.RNode) ([]*yaml.RNode, error) {
 }
 
 func main() {
+	cmd := exec.CommandContext(context.Background(), "ls", "-l", "/etc/kude/function/config.yaml")
+	cmd.Stdout = os.Stderr
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		panic(err)
+	}
 
 	//
 	// Read the config file
 	//
 	if configBytes, err := ioutil.ReadFile("/etc/kude/function/config.yaml"); err != nil {
-		_ = exec.Command("ls", "-l", "/etc/kude/function/config.yaml").Run()
-		time.Sleep(2 * time.Second)
 		panic(err)
 	} else if err := yaml.Unmarshal(configBytes, &config); err != nil {
 		panic(err)
