@@ -1,4 +1,4 @@
-module github.com/arikkfir/devbot/functions/annotate
+module github.com/arikkfir/kude/functions/annotate
 
 go 1.17
 

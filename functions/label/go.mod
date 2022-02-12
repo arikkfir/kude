@@ -1,4 +1,4 @@
-module github.com/arikkfir/devbot/functions/label
+module github.com/arikkfir/kude/functions/label
 
 go 1.17
 
