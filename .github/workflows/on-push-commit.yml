@@ -1,0 +1,67 @@
+name: Build
+on:
+  push:
+    branches: [ * ]
+defaults:
+  run:
+    shell: bash -eu {0}
+jobs:
+  discover-functions:
+    outputs:
+      functions: ${{ steps.discover.outputs.functions }}
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - id: discover
+        run: echo "::set-output name=functions::$(ls -d * | jq -R -s -c 'split("\n")[:-1]')"
+        working-directory: functions
+  build-functions:
+    name: Build function ${{ matrix.function }}
+    needs: [ discover-functions ]
+    permissions:
+      contents: read
+      packages: write
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: |-
+          docker build -t ${IMAGE}:${{ github.sha }} .
+          docker push ${IMAGE}:${{ github.sha }}
+          docker tag ${IMAGE}:${{ github.sha }} ${IMAGE}:${GITHUB_SHA::7}
+          docker push ${IMAGE}:${GITHUB_SHA::7}
+        env:
+          IMAGE: ghcr.io/arikkfir/kude/functions/${{ matrix.function }}
+        working-directory: functions/${{ matrix.function }}
+    strategy:
+      matrix:
+        function: ${{fromJson(needs.discover-functions.outputs.functions)}}
+  build-cli:
+    name: Build CLI ${{ matrix.os }}
+    needs: [ build-functions ]
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - run: go mod download
+      - run: go vet
+      - run: go test test/... -coverprofile=coverage.out # TODO: publish coverage in PR
+      - run: go build -o kude-${{ matrix.os }} cli/main.go
+        env:
+          GOARCH: amd64
+          GOOS: ${{ matrix.os }}
+      - uses: google-github-actions/auth@v0
+        with:
+          service_account: kude-github-actions@arikkfir.iam.gserviceaccount.com
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      - uses: google-github-actions/setup-gcloud@v0
+      - run: gsutil cp kude-${{ matrix.os }} gs://arikkfir-artifacts/kude/kude-${{ matrix.os }}-${{ github.sha }}
+    strategy:
+      matrix:
+        os: [ darwin, linux ]
