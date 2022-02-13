@@ -24,19 +24,38 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
+      - uses: docker/setup-buildx-action@v1
+        id: buildx
+        with:
+          install: true
+      - uses: actions/cache@v2
+        id: buildx
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-multi-buildx-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-multi-buildx
       - uses: docker/login-action@v1
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - run: |-
-          docker build -t ${IMAGE}:${{ github.sha }} .
-          docker push ${IMAGE}:${{ github.sha }}
-          docker tag ${IMAGE}:${{ github.sha }} ${IMAGE}:${GITHUB_SHA::7}
-          docker push ${IMAGE}:${GITHUB_SHA::7}
-        env:
-          IMAGE: ghcr.io/arikkfir/kude/functions/${{ matrix.function }}
-        working-directory: functions/${{ matrix.function }}
+      - uses: docker/build-push-action@v2
+        with:
+          builder: ${{ steps.buildx.outputs.name }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,mode=max,dest=/tmp/.buildx-cache-new
+          context: functions/${{ matrix.function }}
+          file: functions/${{ matrix.function }}/Dockerfile
+          push: true
+          tags: ghcr.io/arikkfir/kude/functions/${{ matrix.function }}
+    #      - run: |-
+    #          docker build -t ${IMAGE}:${{ github.sha }} .
+    #          docker push ${IMAGE}:${{ github.sha }}
+    #          docker tag ${IMAGE}:${{ github.sha }} ${IMAGE}:${GITHUB_SHA::7}
+    #          docker push ${IMAGE}:${GITHUB_SHA::7}
+    #        env:
+    #          IMAGE: ghcr.io/arikkfir/kude/functions/${{ matrix.function }}
+    #        working-directory: functions/${{ matrix.function }}
     strategy:
       matrix:
         function: ${{fromJson(needs.discover-functions.outputs.functions)}}
