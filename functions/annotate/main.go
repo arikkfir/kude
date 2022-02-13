@@ -1,10 +1,8 @@
 package main
 
 import (
-	"context"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
@@ -31,14 +29,14 @@ func transform(resources []*yaml.RNode) ([]*yaml.RNode, error) {
 }
 
 func main() {
-	cmd := exec.CommandContext(context.Background(), "ls", "-l", "/etc/kude/function/config.yaml")
-	cmd.Stdout = os.Stderr
-	cmd.Stderr = os.Stderr
-	err := cmd.Run()
-	if err != nil {
-		panic(err)
-	}
-
+	//cmd := exec.CommandContext(context.Background(), "ls", "-l", "/etc/kude/function/config.yaml")
+	//cmd.Stdout = os.Stderr
+	//cmd.Stderr = os.Stderr
+	//err := cmd.Run()
+	//if err != nil {
+	//	panic(err)
+	//}
+	//
 	//
 	// Read the config file
 	//
