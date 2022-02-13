@@ -29,7 +29,6 @@ jobs:
         with:
           install: true
       - uses: actions/cache@v2
-        id: buildx
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-multi-buildx-${{ github.sha }}
