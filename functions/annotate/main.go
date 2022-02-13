@@ -29,14 +29,6 @@ func transform(resources []*yaml.RNode) ([]*yaml.RNode, error) {
 }
 
 func main() {
-	//cmd := exec.CommandContext(context.Background(), "ls", "-l", "/etc/kude/function/config.yaml")
-	//cmd.Stdout = os.Stderr
-	//cmd.Stderr = os.Stderr
-	//err := cmd.Run()
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
 	//
 	// Read the config file
 	//

@@ -16,8 +16,7 @@ ENV GO111MODULE="on"
 RUN go build -o annotate main.go
 
 ### Target layer
-#FROM gcr.io/distroless/static:nonroot
-FROM alpine:3.15
+FROM gcr.io/distroless/base:latest
 WORKDIR /
 COPY --from=builder /workspace/annotate ./annotate
 ENV GOTRACEBACK=all
