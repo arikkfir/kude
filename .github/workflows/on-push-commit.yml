@@ -72,6 +72,8 @@ jobs:
       - run: go vet ./cli/... ./internal/... ./test/...
       - run: find . -type f -name kude.yaml | xargs -i@ sed -i -r 's/(ghcr.io\/arikkfir\/kude\/functions\/[^:]+):test/\1:${{ github.sha }}/g' @
         working-directory: test
+      - run: find . -type f -name kude.yaml | xargs -i@ cat @
+        working-directory: test
       - run: go test ./internal/... -coverprofile=coverage.out # TODO: publish coverage in PR
       - run: go build -o kude-${{ matrix.os }} cli/main.go
         env:
