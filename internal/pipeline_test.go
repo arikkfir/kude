@@ -7,6 +7,7 @@ import (
 	"github.com/hexops/gotextdiff"
 	"github.com/hexops/gotextdiff/myers"
 	"github.com/hexops/gotextdiff/span"
+	"github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"strings"
@@ -14,6 +15,7 @@ import (
 )
 
 func TestDeployments(t *testing.T) {
+
 	entries, err := os.ReadDir("../test")
 	if err != nil {
 		t.Fatal(err)
@@ -58,6 +60,15 @@ func TestDeployments(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
+	logger := logrus.StandardLogger()
+	logger.SetLevel(logrus.TraceLevel) // TODO: make this configurable
+	logger.SetOutput(os.Stdout)
+	logger.SetReportCaller(true)
+	logger.SetFormatter(&logrus.TextFormatter{
+		DisableTimestamp:       true,
+		DisableLevelTruncation: true,
+		PadLevelText:           true,
+	})
 	if os.Getenv("BUILD_FUNCTIONS") == "1" {
 		err := test.BuildFunctionDockerImages()
 		if err != nil {
