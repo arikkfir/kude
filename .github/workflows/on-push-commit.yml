@@ -47,6 +47,7 @@ jobs:
           file: functions/${{ matrix.function }}/Dockerfile
           push: true
           tags: ghcr.io/arikkfir/kude/functions/${{ matrix.function }}
+      - run: rm -rf /tmp/.buildx-cache && mv /tmp/.buildx-cache-new /tmp/.buildx-cache
     #      - run: |-
     #          docker build -t ${IMAGE}:${{ github.sha }} .
     #          docker push ${IMAGE}:${{ github.sha }}
