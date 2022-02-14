@@ -43,11 +43,7 @@ jobs:
         with:
           images: ghcr.io/arikkfir/kude/functions/${{ matrix.function }}
           tags: |
-            type=schedule
-            type=semver,pattern={{version}}
-            type=semver,pattern=v{{major}}
-            type=semver,pattern={{major}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=semver,enabled=false
             type=ref,event=branch
             type=ref,event=tag
             type=ref,event=pr
