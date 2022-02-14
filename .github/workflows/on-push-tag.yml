@@ -29,12 +29,26 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - id: docker-meta
+        uses: docker/metadata-action@v3
+        with:
+          images: ghcr.io/arikkfir/kude/functions/${{ matrix.function }}
+          tags: |
+            type=schedule,enabled=false
+            type=semver,pattern={{version}}
+            type=semver,pattern=v{{major}}
+            type=semver,pattern={{major}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=tag
       - run: |-
-          docker pull ${IMAGE}:${{ github.sha }} .
-          docker tag ${IMAGE}:${{ github.sha }} ${IMAGE}:${{ github.ref_name }}
-          docker push ${IMAGE}:${{ github.ref_name }}
-        env:
-          IMAGE: ghcr.io/arikkfir/kude/functions/${{ matrix.function }}
+          for tag in ${{ steps.docker-meta.outputs.tags }}; do
+            echo ${tag}
+          done
+          #docker pull ${IMAGE}:${{ github.sha }} .
+          #docker tag ${IMAGE}:${{ github.sha }} ${IMAGE}:${{ github.ref_name }}
+          #docker push ${IMAGE}:${{ github.ref_name }}
+        #env:
+        #  IMAGE: ghcr.io/arikkfir/kude/functions/${{ matrix.function }}
         working-directory: functions/${{ matrix.function }}
     strategy:
       matrix:
@@ -52,20 +66,20 @@ jobs:
     strategy:
       matrix:
         os: [ darwin, linux ]
-  release:
-    name: Create Release
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: google-github-actions/auth@v0
-        with:
-          service_account: kude-github-actions@arikkfir.iam.gserviceaccount.com
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-      - uses: google-github-actions/setup-gcloud@v0
-      - run: gsutil cp 'gs://arikkfir-artifacts/kude/kude-*-${{ github.ref_name }}' .
-      - uses: softprops/action-gh-release@v1
-        with:
-          draft: false
-          prerelease: false
-          files: kude-*-${{ github.ref_name }}
-          fail_on_unmatched_files: true
-          generate_release_notes: true
+#  release:
+#    name: Create Release
+#    runs-on: ubuntu-20.04
+#    steps:
+#      - uses: google-github-actions/auth@v0
+#        with:
+#          service_account: kude-github-actions@arikkfir.iam.gserviceaccount.com
+#          credentials_json: ${{ secrets.GCP_SA_KEY }}
+#      - uses: google-github-actions/setup-gcloud@v0
+#      - run: gsutil cp 'gs://arikkfir-artifacts/kude/kude-*-${{ github.ref_name }}' .
+#      - uses: softprops/action-gh-release@v1
+#        with:
+#          draft: false
+#          prerelease: false
+#          files: kude-*-${{ github.ref_name }}
+#          fail_on_unmatched_files: true
+#          generate_release_notes: true
