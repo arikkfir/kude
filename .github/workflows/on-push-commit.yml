@@ -65,14 +65,6 @@ jobs:
           push: true
           tags: ${{ steps.docker-meta.outputs.tags }}
       - run: rm -rf /tmp/.buildx-cache && mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-    #      - run: |-
-    #          docker build -t ${IMAGE}:${{ github.sha }} .
-    #          docker push ${IMAGE}:${{ github.sha }}
-    #          docker tag ${IMAGE}:${{ github.sha }} ${IMAGE}:${GITHUB_SHA::7}
-    #          docker push ${IMAGE}:${GITHUB_SHA::7}
-    #        env:
-    #          IMAGE: ghcr.io/arikkfir/kude/functions/${{ matrix.function }}
-    #        working-directory: functions/${{ matrix.function }}
     strategy:
       matrix:
         function: ${{fromJson(needs.discover-functions.outputs.functions)}}
@@ -88,8 +80,6 @@ jobs:
       - run: go mod download
       - run: go vet ./cli/... ./internal/... ./test/...
       - run: find . -type f -name kude.yaml | xargs -i@ sed -i -r 's/(ghcr.io\/arikkfir\/kude\/functions\/[^:]+):test/\1:${{ github.sha }}/g' @
-        working-directory: test
-      - run: find . -type f -name kude.yaml | xargs -i@ cat @
         working-directory: test
       - run: go test ./internal/... -coverprofile=coverage.out # TODO: publish coverage in PR
       - run: go build -o kude-${{ matrix.os }} cli/main.go
