@@ -43,7 +43,6 @@ jobs:
         with:
           images: ghcr.io/arikkfir/kude/functions/${{ matrix.function }}
           tags: |
-            type=semver,enabled=false
             type=ref,event=branch
             type=ref,event=tag
             type=ref,event=pr
