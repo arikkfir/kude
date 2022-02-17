@@ -37,7 +37,7 @@ jobs:
         with:
           path: /tmp/.buildx-cache
           key: ${{ runner.os }}-multi-buildx-${{ github.sha }}
-          restore-keys: ${{ runner.os }}-multi-buildx
+          restore-keys: ${{ runner.os }}-multi-buildx-
       - uses: docker/login-action@v1
         with:
           registry: ghcr.io
@@ -77,6 +77,22 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: 1.17
+      - uses: actions/cache@v2
+        if: ${{ runner.os == 'Linux' }}
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-
+      - uses: actions/cache@v2
+        if: ${{ runner.os == 'macOS' }}
+        with:
+          path: |
+            ~/Library/Caches/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-
       - run: go mod download
       - run: go vet ./cli/... ./internal/... ./test/...
       - run: find . -type f -name kude.yaml | xargs -i@ sed -i -r 's/(ghcr.io\/arikkfir\/kude\/functions\/[^:]+):test/\1:${{ github.sha }}/g' @
