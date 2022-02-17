@@ -41,14 +41,13 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=ref,event=tag
       - run: |-
+          docker pull ${IMAGE} .
           for tag in '${{ steps.docker-meta.outputs.tags }}'; do
-            echo ${tag}
+            docker tag ${IMAGE} ${tag}
+            docker push ${tag}
           done
-          #docker pull ${IMAGE}:${{ github.sha }} .
-          #docker tag ${IMAGE}:${{ github.sha }} ${IMAGE}:${{ github.ref_name }}
-          #docker push ${IMAGE}:${{ github.ref_name }}
-        #env:
-        #  IMAGE: ghcr.io/arikkfir/kude/functions/${{ matrix.function }}
+        env:
+          IMAGE: ghcr.io/arikkfir/kude/functions/${{ matrix.function }}:${{ github.sha }}
     strategy:
       matrix:
         function: ${{fromJson(needs.discover-functions.outputs.functions)}}
