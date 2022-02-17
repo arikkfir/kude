@@ -3,10 +3,10 @@ on:
   push:
     branches: [ '*' ]
     paths-ignore:
-      - /.github/workflows/on-push-tag.yml
-      - /.github/release*.yml
+      - .github/workflows/on-push-tag.yml
+      - .github/release*.yml
       - '**/*.md'
-      - /LICENSE
+      - LICENSE
 defaults:
   run:
     shell: bash -eu {0}
