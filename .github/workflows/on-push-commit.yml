@@ -2,6 +2,11 @@ name: Build
 on:
   push:
     branches: [ '*' ]
+    paths-ignore:
+      - /.github/workflows/on-push-tag.yml
+      - /.github/release*.yml
+      - '**/*.md'
+      - /LICENSE
 defaults:
   run:
     shell: bash -eu {0}
