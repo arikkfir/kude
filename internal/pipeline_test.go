@@ -9,39 +9,42 @@ import (
 	"github.com/hexops/gotextdiff/span"
 	"github.com/sirupsen/logrus"
 	"io"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
 
 func TestDeployments(t *testing.T) {
-
-	entries, err := os.ReadDir("../test")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	for _, dirEntry := range entries {
-		entry := dirEntry
-		if entry.IsDir() && !strings.HasSuffix(entry.Name(), ".disabled") {
-			t.Run("DEP="+entry.Name(), func(t *testing.T) {
+	root := "../test"
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			t.Error(fmt.Errorf("error walking '%s': %w", path, err))
+			return nil
+		} else if !d.IsDir() {
+			return nil
+		} else if root == path {
+			return nil
+		} else if !strings.HasSuffix(path, ".test") {
+			return fs.SkipDir
+		} else {
+			absPath, err := filepath.Abs(path)
+			if err != nil {
+				t.Error(err)
+			}
+			t.Run("PATH="+path, func(t *testing.T) {
 				//t.Parallel()
-
-				t.Logf("Creating pipeline for %s\n", entry.Name())
-				pipeline, err := CreatePipeline("../test/" + entry.Name())
+				pipeline, err := CreatePipeline(absPath)
 				if err != nil {
-					t.Fatal(err)
+					t.Error(err)
 				}
-
-				t.Logf("Executing pipeline for %s\n", entry.Name())
 				actual := bytes.Buffer{}
 				err = pipeline.executePipeline(&actual)
 				if err != nil {
 					t.Fatal(err)
 				}
-
-				t.Logf("Verifying pipeline output for %s\n", entry.Name())
-				expectedFile, err := os.Open(fmt.Sprintf("../test/%s/expected.yaml", entry.Name()))
+				expectedFile, err := os.Open(filepath.Join(absPath, "expected.yaml"))
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -55,7 +58,11 @@ func TestDeployments(t *testing.T) {
 					t.Errorf("Incorrect output:\n%s", diff)
 				}
 			})
+			return nil
 		}
+	})
+	if err != nil {
+		t.Error(err)
 	}
 }
 
@@ -63,7 +70,7 @@ func TestMain(m *testing.M) {
 	logger := logrus.StandardLogger()
 	logger.SetLevel(logrus.TraceLevel) // TODO: make this configurable
 	logger.SetOutput(os.Stdout)
-	logger.SetReportCaller(true)
+	logger.SetReportCaller(false)
 	logger.SetFormatter(&logrus.TextFormatter{
 		DisableTimestamp:       true,
 		DisableLevelTruncation: true,
