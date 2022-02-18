@@ -4,10 +4,10 @@ on:
     branches: [ '*' ]
     paths-ignore:
       - .github/workflows/on-push-tag.yml
-      - .github/workflows/on-push-tag-test.yml
       - .github/release*.yml
       - '**/*.md'
       - LICENSE
+  workflow_dispatch:
 defaults:
   run:
     shell: bash -eu {0}
