@@ -13,6 +13,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: gh release create --draft --generate-notes --prerelease ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   discover-functions:
     outputs:
       functions: ${{ steps.discover.outputs.functions }}
@@ -70,6 +72,8 @@ jobs:
       - uses: google-github-actions/setup-gcloud@v0
       - run: gsutil cp gs://arikkfir-artifacts/kude/kude-${{ matrix.os }}-${{ github.sha }} ./kude-${{ matrix.os }}
       - run: gh release upload --clobber ${{ github.ref_name }} ./kude-${{ matrix.os }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     strategy:
       matrix:
         os: [ darwin, linux ]
