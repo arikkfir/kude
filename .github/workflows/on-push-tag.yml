@@ -41,9 +41,9 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=ref,event=tag
       - run: |-
-          set -x
           docker pull ${IMAGE}
-          for tag in '${{ steps.docker-meta.outputs.tags }}'; do
+          TAGS="${{ steps.docker-meta.outputs.tags }}"
+          for tag in ${TAGS}; do
             docker tag ${IMAGE} ${tag}
             docker push ${tag}
           done
