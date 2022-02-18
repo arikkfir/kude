@@ -7,6 +7,12 @@ defaults:
     shell: bash -eu {0}
 # TODO: detect if most recent release and tag as latest
 jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: gh release create --draft --generate-notes --prerelease ${{ github.ref_name }}
   discover-functions:
     outputs:
       functions: ${{ steps.discover.outputs.functions }}
@@ -54,6 +60,7 @@ jobs:
         function: ${{fromJson(needs.discover-functions.outputs.functions)}}
   cli:
     name: Tag CLI ${{ matrix.os }}
+    needs: [ release ]
     runs-on: ubuntu-20.04
     steps:
       - uses: google-github-actions/auth@v0
@@ -62,7 +69,7 @@ jobs:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
       - uses: google-github-actions/setup-gcloud@v0
       - run: gsutil cp gs://arikkfir-artifacts/kude/kude-${{ matrix.os }}-${{ github.sha }} ./kude-${{ matrix.os }}
-      - run: gh release upload --clobber --repo arikkfir/kude v0.0.5 ./kude-${{ matrix.os }}
+      - run: gh release upload --clobber ${{ github.ref_name }} ./kude-${{ matrix.os }}
     strategy:
       matrix:
         os: [ darwin, linux ]
