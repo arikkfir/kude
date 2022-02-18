@@ -5,7 +5,6 @@ on:
 defaults:
   run:
     shell: bash -exu {0}
-# TODO: detect if most recent release and tag as latest
 jobs:
   tag-functions:
     name: Tag function ${{ matrix.function }}
