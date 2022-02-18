@@ -4,7 +4,7 @@ on:
     tags: [ v* ]
 defaults:
   run:
-    shell: bash -exu {0}
+    shell: bash -eu {0}
 jobs:
   tag-functions:
     name: Tag function ${{ matrix.function }}
@@ -32,8 +32,8 @@ jobs:
       - run: |-
           TAGS="${{ steps.docker-meta.outputs.tags }}"
           for tag in ${TAGS}; do
-            echo ${tag}
-            echo "----------------------------------------"
+            echo docker tag ${IMAGE} ${tag}
+            echo docker push ${tag}
           done
         env:
           IMAGE: ghcr.io/arikkfir/kude/functions/${{ matrix.function }}:${{ github.sha }}
