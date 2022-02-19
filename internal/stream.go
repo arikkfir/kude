@@ -28,12 +28,7 @@ func (s *stream) Close() error {
 }
 
 func (s *stream) Add(url string) error {
-	safeLocalName := url
-	safeLocalName = strings.ReplaceAll(safeLocalName, ".", "${dot}")
-	safeLocalName = strings.ReplaceAll(safeLocalName, "/", "${bckslash}")
-	safeLocalName = strings.ReplaceAll(safeLocalName, ":", "${colon}")
-	safeLocalName = strings.ReplaceAll(safeLocalName, "\\", "${fwdslash}")
-	tempDir, err := ioutil.TempDir("", safeLocalName+".*")
+	tempDir, err := ioutil.TempDir("", "")
 	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
 	}
