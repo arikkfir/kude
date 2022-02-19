@@ -8,7 +8,6 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 )
@@ -29,50 +28,41 @@ func (s *stream) Close() error {
 }
 
 func (s *stream) Add(url string) error {
-	if strings.HasSuffix(strings.ToLower(url), ".yaml") {
-		return s.downloadAndAddFile(url)
-	} else {
-		return s.downloadAndAddDirectory(url)
-	}
-}
-
-func (s *stream) downloadAndAddFile(url string) error {
-	tempFile, err := ioutil.TempFile("", path.Base(url)+".*")
-	if err != nil {
-		return fmt.Errorf("failed to create temp file: %w", err)
-	}
-	defer func() { os.Remove(tempFile.Name()) }()
-
-	err = getter.GetFile(tempFile.Name(), url, s.pwdGetterClientOption)
-	if err != nil {
-		return fmt.Errorf("failed to download %s: %w", url, err)
-	}
-
-	return s.addFile(tempFile.Name())
-}
-
-func (s *stream) downloadAndAddDirectory(url string) error {
-	tempDir, err := ioutil.TempDir("", path.Base(url)+".*")
+	safeLocalName := url
+	safeLocalName = strings.ReplaceAll(safeLocalName, ".", "${dot}")
+	safeLocalName = strings.ReplaceAll(safeLocalName, "/", "${bckslash}")
+	safeLocalName = strings.ReplaceAll(safeLocalName, ":", "${colon}")
+	safeLocalName = strings.ReplaceAll(safeLocalName, "\\", "${fwdslash}")
+	tempDir, err := ioutil.TempDir("", safeLocalName+".*")
 	if err != nil {
 		return fmt.Errorf("failed to create temp directory: %w", err)
 	}
 	defer func() { os.RemoveAll(tempDir) }()
 
-	err = getter.Get(tempDir, url, s.pwdGetterClientOption)
+	detected, err := getter.Detect(url, s.pwd, getter.Detectors)
+	if err != nil {
+		return fmt.Errorf("failed to detect type of '%s': %w", url, err)
+	}
+	if strings.HasPrefix(detected, "file://") {
+		// go-getter complains when it tries to download a file from a "file://" URLs and dst already exists
+		os.RemoveAll(tempDir)
+	}
+
+	err = getter.GetAny(tempDir, url, s.pwdGetterClientOption)
 	if err != nil {
 		return fmt.Errorf("failed to download %s: %w", url, err)
 	}
 
-	manifest := filepath.Join(tempDir, "kude.yaml")
-	stat, err := os.Stat(manifest)
+	kudeManifestFile := filepath.Join(tempDir, "kude.yaml")
+	kudeManifestStat, err := os.Stat(kudeManifestFile)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return s.addSimpleDirectory(tempDir)
 		} else {
-			return fmt.Errorf("failed inspecting '%s' (for '%s'): %w", manifest, url, err)
+			return fmt.Errorf("failed inspecting '%s' (for '%s'): %w", kudeManifestFile, url, err)
 		}
-	} else if stat.IsDir() {
-		return fmt.Errorf("illegal package - expected '%s' to be a file, not a directory", filepath.Join(url, "kude.yaml"))
+	} else if kudeManifestStat.IsDir() {
+		return fmt.Errorf("illegal package! '%s' must be a file, not a directory", filepath.Join(url, "kude.yaml"))
 	} else {
 		return s.addKudeDirectory(tempDir)
 	}
@@ -90,27 +80,39 @@ func (s *stream) addKudeDirectory(dir string) error {
 	if err != nil {
 		return fmt.Errorf("failed creating pipe: %w", err)
 	}
+	defer w.Close()
+
 	err = kude.executePipeline(w)
 	if err != nil {
 		return fmt.Errorf("failed evaluating kude package at '%s': %w", dir, err)
 	}
+	w.Close() // required in order for reads from "r" not to block indefinitely...
 	return s.addReader(r)
 }
 
 func (s *stream) addSimpleDirectory(dir string) error {
-	err := filepath.WalkDir(dir, func(path string, e fs.DirEntry, err error) error {
-		if err != nil {
-			return fmt.Errorf("failed walking '%s': %w", path, err)
-		}
-		if !e.IsDir() && filepath.Ext(path) == ".yaml" {
-			return s.addFile(path)
-		}
-		return nil
-	})
+	err := filepath.WalkDir(dir, s.walkSimpleDirectory)
 	if err != nil {
 		return fmt.Errorf("failed walking '%s': %w", dir, err)
 	}
 	return nil
+}
+
+func (s *stream) walkSimpleDirectory(path string, e fs.DirEntry, err error) error {
+	if err != nil {
+		return fmt.Errorf("failed walking '%s': %w", path, err)
+	}
+	if e.Type() == fs.ModeSymlink {
+		target, err := os.Readlink(path)
+		if err != nil {
+			return fmt.Errorf("failed reading symlink '%s': %w", path, err)
+		}
+		return filepath.WalkDir(target, s.walkSimpleDirectory)
+	} else if !e.IsDir() && filepath.Ext(path) == ".yaml" {
+		return s.addFile(path)
+	} else {
+		return nil
+	}
 }
 
 func (s *stream) addFile(file string) error {

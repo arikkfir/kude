@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    foo: bar2
+  labels:
+    app.kubernetes.io/component: test
+  name: test
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: test
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: test
+    spec:
+      containers:
+        - image: test/test
+          name: server
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    foo: bar2
+  labels:
+    app.kubernetes.io/component: test
+  name: test
+spec:
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: http
+  selector:
+    app.kubernetes.io/component: test
+  type: ClusterIP
