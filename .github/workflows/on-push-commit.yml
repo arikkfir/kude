@@ -97,8 +97,12 @@ jobs:
           restore-keys: ${{ runner.os }}-go-
       - run: go mod download
       - run: go vet ./cli/... ./internal/... ./test/...
-      - run: find . -type f -name kude.yaml | xargs -i@ sed -i -r 's/(ghcr.io\/arikkfir\/kude\/functions\/[^:]+):test/\1:${{ github.sha }}/g' @
-        working-directory: test
+      - run: |-
+          for f in $(ls -d *); do
+            docker pull ghcr.io/arikkfir/kude/functions/${f}:${{ github.sha }}
+            docker tag ghcr.io/arikkfir/kude/functions/${f}:${{ github.sha }} ghcr.io/arikkfir/kude/functions/${f}:test
+          done
+        working-directory: functions
       - run: go test ./internal/... -coverprofile=coverage.out # TODO: publish coverage in PR
       - run: go build -o kude-${{ matrix.os }} cli/main.go
         env:
