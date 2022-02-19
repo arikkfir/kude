@@ -34,7 +34,7 @@ func TestDeployments(t *testing.T) {
 				t.Error(err)
 			}
 			t.Run("PATH="+path, func(t *testing.T) {
-				//t.Parallel()
+				t.Parallel()
 				pipeline, err := CreatePipeline(absPath)
 				if err != nil {
 					t.Error(err)
