@@ -84,7 +84,7 @@ func (f *Function) invokeFunction(r io.Reader, w io.Writer) error {
 	if pull {
 		imagePullReader, err := dockerClient.ImagePull(ctx, f.Image, types.ImagePullOptions{})
 		if err != nil {
-			return fmt.Errorf("failed pulling Docker image of function '%s': %w", f.Name, err)
+			return fmt.Errorf("failed pulling Docker image '%s' of function '%s': %w", f.Image, f.Name, err)
 		}
 		defer func(imagePullReader io.ReadCloser) { _ = imagePullReader.Close() }(imagePullReader)
 		scanner := bufio.NewScanner(imagePullReader)
