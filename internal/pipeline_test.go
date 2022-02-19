@@ -27,7 +27,7 @@ func TestDeployments(t *testing.T) {
 		} else if root == path {
 			return nil
 		} else if !strings.HasSuffix(path, ".test") {
-			return fs.SkipDir
+			return nil
 		} else {
 			absPath, err := filepath.Abs(path)
 			if err != nil {
