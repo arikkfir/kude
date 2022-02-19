@@ -1,0 +1,10 @@
+apiVersion: kude.kfirs.com/v1alpha1
+kind: Pipeline
+resources:
+  - ../not-kude-deployment-dir
+  - service.yaml
+pipeline:
+  - image: ghcr.io/arikkfir/kude/functions/annotate:test
+    config:
+      name: foo
+      value: bar2
