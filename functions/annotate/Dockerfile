@@ -13,11 +13,11 @@ ENV CGO_ENABLED="0"
 ENV GOARCH="amd64"
 ENV GOOS="linux"
 ENV GO111MODULE="on"
-RUN go build -o annotate main.go
+RUN go build -o main main.go
 
 ### Target layer
 FROM gcr.io/distroless/base:latest
 WORKDIR /
-COPY --from=builder /workspace/annotate ./annotate
+COPY --from=builder /workspace/main ./annotate
 ENV GOTRACEBACK=all
 ENTRYPOINT ["/annotate"]

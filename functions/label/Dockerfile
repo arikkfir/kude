@@ -13,11 +13,11 @@ ENV CGO_ENABLED="0"
 ENV GOARCH="amd64"
 ENV GOOS="linux"
 ENV GO111MODULE="on"
-RUN go build -o label main.go
+RUN go build -o main main.go
 
 ### Target layer
 FROM gcr.io/distroless/base:latest
 WORKDIR /
-COPY --from=builder /workspace/label ./label
+COPY --from=builder /workspace/main ./label
 ENV GOTRACEBACK=all
 ENTRYPOINT ["/label"]
