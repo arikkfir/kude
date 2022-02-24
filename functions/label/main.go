@@ -7,7 +7,7 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-// Config is the configuration for the annotate function.
+// Config is the configuration for the function.
 type Config struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
@@ -16,7 +16,7 @@ type Config struct {
 // Configuration provided by the configuration file.
 var config = Config{}
 
-// transform will annotate the given YAML resources with the configured annotation.
+// transform will add the given label to the given YAML resources.
 func transform(resources []*yaml.RNode) ([]*yaml.RNode, error) {
 	for i := range resources {
 		resource := resources[i]
@@ -29,14 +29,6 @@ func transform(resources []*yaml.RNode) ([]*yaml.RNode, error) {
 }
 
 func main() {
-	//cmd := exec.CommandContext(context.Background(), "ls", "-l", "/etc/kude/function/config.yaml")
-	//cmd.Stdout = os.Stderr
-	//cmd.Stderr = os.Stderr
-	//err := cmd.Run()
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
 	//
 	// Read the config file
 	//
