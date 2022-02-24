@@ -7,7 +7,7 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-// Config is the configuration for the annotate function.
+// Config is the configuration for the function.
 type Config struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
