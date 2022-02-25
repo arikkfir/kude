@@ -98,14 +98,14 @@ func (f *Function) invokeFunction(r io.Reader, w io.Writer) error {
 			}
 			status := pull["status"]
 			delete(pull, "status")
-			logger.WithField("extra", pull).Debug(status)
+			logger.WithField("extra", pull).Trace(status)
 		}
 		if scanner.Err() != nil {
 			logger.WithError(err).Error("failed parsing Docker image pull output")
 		}
-		logger.WithField("image", f.Image).Debug("Image pulled")
+		logger.WithField("image", f.Image).Trace("Image pulled")
 	} else {
-		logger.WithField("image", f.Image).Debug("Image already present (and not tagged 'latest')")
+		logger.WithField("image", f.Image).Trace("Image already present (and not tagged 'latest')")
 	}
 
 	//
@@ -150,7 +150,7 @@ func (f *Function) invokeFunction(r io.Reader, w io.Writer) error {
 		}
 	}()
 	logger = logger.WithField("container", cont.ID)
-	logger.Debug("Container created")
+	logger.Trace("Container created")
 
 	//
 	// Start container
@@ -164,7 +164,7 @@ func (f *Function) invokeFunction(r io.Reader, w io.Writer) error {
 			logger.WithError(err).Error("failed stopping container")
 		}
 	}()
-	logger.Debug("Started container")
+	logger.Trace("Started container")
 
 	//
 	// Attach to container & send config & resources to container stdin
@@ -185,7 +185,7 @@ func (f *Function) invokeFunction(r io.Reader, w io.Writer) error {
 	//
 	// Wait for container to finish
 	//
-	logger.Debug("Waiting for Docker container to finish...")
+	logger.Trace("Waiting for Docker container to finish...")
 	statusCh, errCh := dockerClient.ContainerWait(ctx, cont.ID, container.WaitConditionNotRunning)
 	var exit container.ContainerWaitOKBody
 	select {
@@ -196,13 +196,13 @@ func (f *Function) invokeFunction(r io.Reader, w io.Writer) error {
 			return fmt.Errorf("failed waiting for container of function '%s' to exit: nil", f.Name)
 		}
 	case exit = <-statusCh:
-		logger.WithField("exitCode", exit.StatusCode).Debug("Container exited")
+		logger.WithField("exitCode", exit.StatusCode).Trace("Container exited")
 	}
 
 	//
 	// Prepare container output reader
 	//
-	logger.Debug("Attaching stdout/stderr readers to Docker container...")
+	logger.Trace("Attaching stdout/stderr readers to Docker container...")
 	readers, err := dockerClient.ContainerAttach(ctx, cont.ID, types.ContainerAttachOptions{
 		Stdout: true,
 		Stderr: true,
