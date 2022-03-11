@@ -1,4 +1,4 @@
-package internal
+package stream
 
 import (
 	"fmt"
@@ -13,14 +13,25 @@ import (
 )
 
 type stream struct {
-	pwd     string
-	encoder *yaml.Encoder
+	pwd              string
+	directoryHandler DirectoryHandler
+	encoder          *yaml.Encoder
 }
 
-func NewStream(pwd string, w io.Writer) *stream {
+type Stream interface {
+	Close() error
+	Add(url string) error
+	AddLocalDirectory(path string) error
+	AddLocalFile(path string) error
+	AddReader(r io.Reader) error
+}
+
+type DirectoryHandler func(url, path string, s Stream) error
+
+func NewStream(pwd string, directoryHandler DirectoryHandler, w io.Writer) Stream {
 	encoder := yaml.NewEncoder(w)
 	encoder.SetIndent(2)
-	return &stream{pwd: pwd, encoder: encoder}
+	return &stream{pwd: pwd, directoryHandler: directoryHandler, encoder: encoder}
 }
 
 func (s *stream) Close() error {
@@ -48,47 +59,21 @@ func (s *stream) Add(url string) error {
 		return fmt.Errorf("failed to download %s: %w", url, err)
 	}
 
-	kudeManifestFile := filepath.Join(tempDir, "kude.yaml")
-	kudeManifestStat, err := os.Stat(kudeManifestFile)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return s.addSimpleDirectory(tempDir)
-		} else {
-			return fmt.Errorf("failed inspecting '%s' (for '%s'): %w", kudeManifestFile, url, err)
+	if s.directoryHandler != nil {
+		err := s.directoryHandler(url, tempDir, s)
+		if err != nil {
+			return fmt.Errorf("failed to handle directory '%s' ('%s'): %w", tempDir, url, err)
 		}
-	} else if kudeManifestStat.IsDir() {
-		return fmt.Errorf("illegal package! '%s' must be a file, not a directory", filepath.Join(url, "kude.yaml"))
+		return nil
 	} else {
-		return s.addKudeDirectory(tempDir)
+		return fmt.Errorf("no directory handler defined")
 	}
 }
 
-func (s *stream) addKudeDirectory(dir string) error {
-	// Read pipeline
-	kude, err := CreatePipeline(dir)
+func (s *stream) AddLocalDirectory(path string) error {
+	err := filepath.WalkDir(path, s.walkSimpleDirectory)
 	if err != nil {
-		return fmt.Errorf("failed reading kude package at '%s': %w", dir, err)
-	}
-
-	// Execute pipeline
-	r, w, err := os.Pipe()
-	if err != nil {
-		return fmt.Errorf("failed creating pipe: %w", err)
-	}
-	defer w.Close()
-
-	err = kude.executePipeline(w)
-	if err != nil {
-		return fmt.Errorf("failed evaluating kude package at '%s': %w", dir, err)
-	}
-	w.Close() // required in order for reads from "r" not to block indefinitely...
-	return s.addReader(r)
-}
-
-func (s *stream) addSimpleDirectory(dir string) error {
-	err := filepath.WalkDir(dir, s.walkSimpleDirectory)
-	if err != nil {
-		return fmt.Errorf("failed walking '%s': %w", dir, err)
+		return fmt.Errorf("failed walking '%s': %w", path, err)
 	}
 	return nil
 }
@@ -104,22 +89,22 @@ func (s *stream) walkSimpleDirectory(path string, e fs.DirEntry, err error) erro
 		}
 		return filepath.WalkDir(target, s.walkSimpleDirectory)
 	} else if !e.IsDir() && filepath.Ext(path) == ".yaml" {
-		return s.addFile(path)
+		return s.AddLocalFile(path)
 	} else {
 		return nil
 	}
 }
 
-func (s *stream) addFile(file string) error {
+func (s *stream) AddLocalFile(file string) error {
 	reader, err := os.Open(file)
 	if err != nil {
 		return fmt.Errorf("failed to open %s: %w", file, err)
 	}
 	defer reader.Close()
-	return s.addReader(reader)
+	return s.AddReader(reader)
 }
 
-func (s *stream) addReader(reader io.Reader) error {
+func (s *stream) AddReader(reader io.Reader) error {
 	decoder := yaml.NewDecoder(reader)
 	for {
 		var yamlStruct interface{}
