@@ -1,7 +1,7 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="TestDeployments in github.com/arikkfir/kude/internal" type="GoTestRunConfiguration" factoryName="Go Test" nameIsGenerated="true">
+  <configuration default="false" name="go test github.com/arikkfir/kude" type="GoTestRunConfiguration" factoryName="Go Test">
     <module name="kude" />
-    <working_directory value="$PROJECT_DIR$/internal" />
+    <working_directory value="$PROJECT_DIR$" />
     <envs>
       <env name="BUILD_FUNCTIONS" value="1" />
     </envs>
@@ -15,13 +15,11 @@
         <ENTRY IS_ENABLED="true" PARSER="runconfig" />
       </ENTRIES>
     </EXTENSION>
-    <root_directory value="$PROJECT_DIR$" />
-    <kind value="PACKAGE" />
-    <package value="github.com/arikkfir/kude/internal" />
+    <kind value="DIRECTORY" />
+    <package value="github.com/arikkfir/kude" />
     <directory value="$PROJECT_DIR$" />
     <filePath value="$PROJECT_DIR$" />
     <framework value="gotest" />
-    <pattern value="^\QTestDeployments\E$" />
     <method v="2" />
   </configuration>
 </component>

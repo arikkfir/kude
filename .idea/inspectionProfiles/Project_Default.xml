@@ -10,6 +10,7 @@
         <function importPath="fmt" name="Print" />
         <function importPath="os" name="Remove" />
         <function importPath="os" name="RemoveAll" />
+        <function importPath="fmt" name="Fprintf" />
       </functions>
       <methods>
         <method importPath="hash" receiver="Hash" name="Write" />
@@ -26,6 +27,7 @@
         <method importPath="gopkg.in/yaml.v3" receiver="*Encoder" name="Close" />
         <method importPath="os" receiver="*File" name="Close" />
         <method importPath="github.com/arikkfir/kude/internal" receiver="*stream" name="Close" />
+        <method importPath="github.com/arikkfir/kude/internal/stream" receiver="Stream" name="Close" />
       </methods>
     </inspection_tool>
   </profile>
