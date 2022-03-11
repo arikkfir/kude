@@ -3,15 +3,16 @@ package internal
 import (
 	"bytes"
 	"fmt"
-	"github.com/arikkfir/kude/test"
 	"github.com/hexops/gotextdiff"
 	"github.com/hexops/gotextdiff/myers"
 	"github.com/hexops/gotextdiff/span"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sigs.k8s.io/kustomize/kyaml/kio"
 	"strings"
 	"testing"
 )
@@ -35,15 +36,32 @@ func TestDeployments(t *testing.T) {
 			}
 			t.Run("PATH="+path, func(t *testing.T) {
 				t.Parallel()
-				pipeline, err := CreatePipeline(absPath)
-				if err != nil {
-					t.Error(err)
-				}
+
 				actual := bytes.Buffer{}
-				err = pipeline.executePipeline(&actual)
+				pipeline, err := BuildPipeline(absPath, &kio.ByteWriter{Writer: &actual})
 				if err != nil {
 					t.Fatal(err)
+				} else if err := pipeline.Execute(); err != nil {
+					t.Fatal(err)
 				}
+
+				actualFormatted := bytes.Buffer{}
+				decoder := yaml.NewDecoder(&actual)
+				encoder := yaml.NewEncoder(&actualFormatted)
+				encoder.SetIndent(2)
+				for {
+					var data interface{}
+					if err := decoder.Decode(&data); err != nil {
+						if err == io.EOF {
+							break
+						}
+						t.Fatal(err)
+					}
+					if err := encoder.Encode(data); err != nil {
+						t.Fatal(err)
+					}
+				}
+
 				expectedFile, err := os.Open(filepath.Join(absPath, "expected.yaml"))
 				if err != nil {
 					t.Fatal(err)
@@ -52,8 +70,8 @@ func TestDeployments(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if string(expected) != actual.String() {
-					edits := myers.ComputeEdits(span.URIFromPath("expected"), string(expected), actual.String())
+				if string(expected) != actualFormatted.String() {
+					edits := myers.ComputeEdits(span.URIFromPath("expected"), string(expected), actualFormatted.String())
 					diff := fmt.Sprint(gotextdiff.ToUnified("expected", "actual", string(expected), edits))
 					t.Errorf("Incorrect output:\n%s", diff)
 				}
@@ -76,11 +94,5 @@ func TestMain(m *testing.M) {
 		DisableLevelTruncation: true,
 		PadLevelText:           true,
 	})
-	if os.Getenv("BUILD_FUNCTIONS") == "1" {
-		err := test.BuildFunctionDockerImages()
-		if err != nil {
-			panic(err)
-		}
-	}
 	os.Exit(m.Run())
 }

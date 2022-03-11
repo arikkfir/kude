@@ -3,12 +3,12 @@ module github.com/arikkfir/kude
 go 1.17
 
 require (
+	github.com/blang/semver v3.5.1+incompatible
 	github.com/docker/docker v20.10.12+incompatible
 	github.com/google/uuid v1.2.0
 	github.com/hashicorp/go-getter v1.5.11
 	github.com/hexops/gotextdiff v1.0.3
 	github.com/jessevdk/go-flags v1.5.0
-	github.com/kr/text v0.2.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/viper v1.8.1
 	github.com/vmware-labs/yaml-jsonpath v0.3.2

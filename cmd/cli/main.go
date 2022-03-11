@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"io"
 	"os"
+	"sigs.k8s.io/kustomize/kyaml/kio"
 )
 
 type LogConfig struct {
@@ -81,14 +82,13 @@ func main() {
 	if err != nil {
 		logrus.WithError(err).Fatal("Failed to read current working directory")
 	}
-	pipeline, err := internal.CreatePipeline(pwd)
+	pipeline, err := internal.BuildPipeline(pwd, kio.ByteWriter{Writer: os.Stdout})
 	if err != nil {
-		logrus.WithError(err).Fatal("Failed to read pipeline")
+		logrus.WithError(err).Fatal("Failed to build pipeline")
 	}
 
 	// Execute pipeline
-	err = pipeline.Execute()
-	if err != nil {
+	if err := pipeline.Execute(); err != nil {
 		logrus.WithError(err).Fatal("Pipeline failed")
 	}
 }
