@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v2
       - id: discover
         run: echo "::set-output name=functions::$(ls -d * | jq -R -s -c 'split("\n")[:-1]')"
-        working-directory: functions
+        working-directory: cmd/functions
   build-functions:
     name: Build function ${{ matrix.function }}
     needs: [ discover-functions ]
@@ -57,11 +57,12 @@ jobs:
             type=raw,value=latest,enable=${{ endsWith(github.ref, github.event.repository.default_branch) }}
       - uses: docker/build-push-action@v2
         with:
+          build-args: function=${{ matrix.function }}
           builder: ${{ steps.buildx.outputs.name }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,mode=max,dest=/tmp/.buildx-cache-new
-          context: functions/${{ matrix.function }}
-          file: functions/${{ matrix.function }}/Dockerfile
+          #context: functions/${{ matrix.function }}
+          file: cmd/functions/${{ matrix.function }}/Dockerfile
           labels: ${{ steps.docker-meta.outputs.labels }}
           push: true
           tags: ${{ steps.docker-meta.outputs.tags }}
@@ -95,15 +96,15 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-
       - run: go mod download
-      - run: go vet ./cli/... ./internal/... ./test/...
+      - run: go vet ./cmd/cli/... ./internal/... /pkg/... ./test/...
       - run: |-
           for f in $(ls -d *); do
             docker pull ghcr.io/arikkfir/kude/functions/${f}:${{ github.sha }}
             docker tag ghcr.io/arikkfir/kude/functions/${f}:${{ github.sha }} ghcr.io/arikkfir/kude/functions/${f}:test
           done
-        working-directory: functions
-      - run: go test ./internal/... -coverprofile=coverage.out # TODO: publish coverage in PR
-      - run: go build -o kude-${{ matrix.os }} cli/main.go
+        working-directory: cmd/functions
+      - run: go test ./internal/... ./pkg/... -coverprofile=coverage.out # TODO: publish coverage in PR
+      - run: go build -o kude-${{ matrix.os }} cmd/cli/main.go
         env:
           GOARCH: amd64
           GOOS: ${{ matrix.os }}
