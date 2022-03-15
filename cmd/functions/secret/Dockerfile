@@ -32,4 +32,4 @@ ENTRYPOINT ["/function"]
 
 ### Labels
 LABEL "kude.kfirs.com/minimum-version"=0.0.0
-LABEL "kude.kfirs.com/mount-config-keys"="$.contents[*].path"
+LABEL "kude.kfirs.com/mount:1"="$.contents[*].path"

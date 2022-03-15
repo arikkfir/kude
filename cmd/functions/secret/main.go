@@ -55,7 +55,7 @@ func main() {
 				if content.Value != "" {
 					value = content.Value
 				} else {
-					contents, err := ioutil.ReadFile(content.Path)
+					contents, err := ioutil.ReadFile("/workspace/" + content.Path)
 					if err != nil {
 						return nil, fmt.Errorf("error reading file '%s': %w", content.Path, err)
 					}
@@ -72,18 +72,22 @@ func main() {
 			hashedName := viper.GetString("name") + "-" + hex.EncodeToString(hash.Sum(nil))
 
 			// Generate the Secret node
-			node, err := yaml.MakeNullNode().
-				Pipe(
-					yaml.SetField(yaml.APIVersionField, yaml.NewStringRNode("v1")),
-					yaml.SetField(yaml.KindField, yaml.NewStringRNode("Secret")),
-					yaml.SetK8sNamespace(viper.GetString("namespace")),
-					yaml.SetK8sName(hashedName),
-					yaml.SetAnnotation(pkg.PreviousNameAnnotationName, viper.GetString("name")),
-					yaml.SetField("type", yaml.NewStringRNode(viper.GetString("type"))),
-					yaml.SetField("data", yaml.NewMapRNode(&data)),
-				)
+			node, err := yaml.NewMapRNode(nil).Pipe(
+				yaml.Tee(yaml.SetField(yaml.APIVersionField, yaml.NewScalarRNode("v1"))),
+				yaml.Tee(yaml.SetField(yaml.KindField, yaml.NewScalarRNode("Secret"))),
+				yaml.Tee(yaml.SetK8sName(hashedName)),
+				yaml.Tee(yaml.SetAnnotation(pkg.PreviousNameAnnotationName, viper.GetString("name"))),
+				yaml.Tee(yaml.SetField("type", yaml.NewScalarRNode(viper.GetString("type")))),
+				yaml.Tee(yaml.SetField("data", yaml.NewMapRNode(&data))),
+			)
 			if err != nil {
 				return nil, fmt.Errorf("error generating secret: %w", err)
+			}
+			if viper.GetString("namespace") != "" {
+				err := node.PipeE(yaml.Tee(yaml.SetK8sNamespace(viper.GetString("namespace"))))
+				if err != nil {
+					return nil, fmt.Errorf("error generating secret: %w", err)
+				}
 			}
 			return []*yaml.RNode{node}, nil
 		})},
