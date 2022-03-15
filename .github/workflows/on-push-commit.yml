@@ -3,7 +3,6 @@ on:
   push:
     branches: [ '*' ]
     paths-ignore:
-      - .github/workflows/on-create-release.yml
       - .github/workflows/on-push-tag.yml
       - .github/release*.yml
       - '**/*.md'
