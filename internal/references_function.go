@@ -4,7 +4,6 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"github.com/arikkfir/kude/pkg"
 	"github.com/vmware-labs/yaml-jsonpath/pkg/yamlpath"
 	"gopkg.in/yaml.v3"
 	"io"
@@ -158,7 +157,7 @@ func (r *referencesResolverFunction) collectRenamedResources(resources []*yaml.N
 		if err != nil {
 			return nil, fmt.Errorf("error extracting resource info: %w", err)
 		}
-		previousName, err := getYAMLNodeScalarValue(resource, fmt.Sprintf("$.metadata.annotations['%s']", pkg.PreviousNameAnnotationName))
+		previousName, err := getYAMLNodeScalarValue(resource, fmt.Sprintf("$.metadata.annotations['%s']", "kude.kfirs.com/previous-name"))
 		if err != nil {
 			return nil, fmt.Errorf("error finding previous-name: %w", err)
 		} else if previousName != "" {
