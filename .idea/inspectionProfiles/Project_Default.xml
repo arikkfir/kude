@@ -28,6 +28,7 @@
         <method importPath="os" receiver="*File" name="Close" />
         <method importPath="github.com/arikkfir/kude/internal" receiver="*stream" name="Close" />
         <method importPath="github.com/arikkfir/kude/internal/stream" receiver="Stream" name="Close" />
+        <method importPath="sigs.k8s.io/kustomize/kyaml/internal/forked/github.com/go-yaml/yaml" receiver="*Encoder" name="Close" />
       </methods>
     </inspection_tool>
   </profile>
