@@ -96,7 +96,7 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-
       - run: go mod download
-      - run: go vet ./cmd/cli/... ./internal/... ./pkg/... ./test/...
+      - run: go vet ./...
       - run: |-
           for f in $(ls -d *); do
             docker pull ghcr.io/arikkfir/kude/functions/${f}:${{ github.sha }}
