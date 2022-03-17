@@ -5,5 +5,9 @@ resources:
 pipeline:
   - image: ghcr.io/arikkfir/kude/functions/annotate:test
     config:
-      name: stringAnn
-      value: value
+      name: stringValueAnn
+      value: abc
+  - image: ghcr.io/arikkfir/kude/functions/annotate:test
+    config:
+      name: stringFileAnn
+      path: annotation-value.txt
