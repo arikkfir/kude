@@ -14,7 +14,6 @@ RUN go mod download
 
 # Now build the actual executable
 COPY cmd ./cmd
-COPY internal ./internal
 COPY pkg ./pkg
 ENV CGO_ENABLED="0"
 ENV GOARCH="amd64"
