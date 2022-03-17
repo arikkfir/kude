@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/arikkfir/kude/pkg"
+	"github.com/blang/semver"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
@@ -86,6 +87,19 @@ func (f *dockerFunction) pullImage(ctx context.Context, dockerClient *client.Cli
 			return fmt.Errorf("expected images list length to be 1")
 		}
 	}
+
+	minVersionValue, ok := images[0].Labels["kude.kfirs.com/minimum-version"]
+	if ok {
+		minVersion, err := semver.Parse(minVersionValue)
+		if err != nil {
+			return fmt.Errorf("failed parsing minimum version '%s': %w", minVersionValue, err)
+		}
+		if pkg.GetVersion().LT(minVersion) {
+			//goland:noinspection GoErrorStringFormat
+			return fmt.Errorf("Kude version '%s' or higher is required", minVersionValue)
+		}
+	}
+
 	f._image = images[0]
 	return nil
 }
