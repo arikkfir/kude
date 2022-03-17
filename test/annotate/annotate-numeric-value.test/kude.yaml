@@ -5,5 +5,9 @@ resources:
 pipeline:
   - image: ghcr.io/arikkfir/kude/functions/annotate:test
     config:
-      name: numericAnn
+      name: numericValueAnn
       value: "123"
+  - image: ghcr.io/arikkfir/kude/functions/annotate:test
+    config:
+      name: numericFileAnn
+      path: annotation-value.txt

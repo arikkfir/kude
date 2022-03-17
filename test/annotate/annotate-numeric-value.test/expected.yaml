@@ -2,7 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    numericAnn: "123"
+    numericFileAnn: "456"
+    numericValueAnn: "123"
   labels:
     app.kubernetes.io/component: test
   name: test
