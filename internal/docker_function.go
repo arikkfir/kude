@@ -182,6 +182,13 @@ func (f *dockerFunction) createContainer(ctx context.Context, dockerClient *clie
 	}
 	f.binds = append(f.binds, configFile+":"+pkg.ConfigFile)
 
+	tempDir := filepath.Join(f.pwd, ".kude", "temp")
+	err = os.MkdirAll(tempDir, os.ModePerm)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed creating temp directory '%s': %w", tempDir, err)
+	}
+	f.binds = append(f.binds, tempDir+":/workspace/temp")
+
 	containerName := f.name + uuid.New().String()
 	cont, err := dockerClient.ContainerCreate(
 		ctx,
