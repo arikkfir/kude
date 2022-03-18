@@ -13,13 +13,13 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Now build the actual executable
-COPY cmd ./cmd
+ARG function
+COPY cmd/functions/${function} ./cmd/functions/${function}
 COPY pkg ./pkg
 ENV CGO_ENABLED="0"
 ENV GOARCH="amd64"
 ENV GOOS="linux"
 ENV GO111MODULE="on"
-ARG function
 RUN go build -o function ./cmd/functions/${function}/main.go
 
 ### Target layer
