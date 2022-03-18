@@ -90,19 +90,24 @@ func BuildPipeline(dir string, writer kio.Writer) (*kio.Pipeline, error) {
 		if !ok {
 			user = ""
 		}
+		allowNetwork, ok := funcConfig["network"].(bool)
+		if !ok {
+			allowNetwork = false
+		}
 		config, ok := funcConfig["config"].(map[string]interface{})
 		if !ok {
 			config = map[string]interface{}{}
 		}
 		filters = append(filters, &dockerFunction{
-			pwd:         pwd,
-			logger:      logrus.WithField("function", name),
-			bindsRegexp: regexp.MustCompile(`mount://([^:]+)(?::([^:]+))?`),
-			name:        name,
-			image:       image,
-			entrypoint:  entrypoint,
-			user:        user,
-			config:      config,
+			pwd:          pwd,
+			logger:       logrus.WithField("function", name),
+			bindsRegexp:  regexp.MustCompile(`mount://([^:]+)(?::([^:]+))?`),
+			name:         name,
+			image:        image,
+			entrypoint:   entrypoint,
+			user:         user,
+			allowNetwork: allowNetwork,
+			config:       config,
 		})
 	}
 	filters = append(filters, &referencesResolverFunction{})

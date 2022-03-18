@@ -29,16 +29,17 @@ import (
 var mountKeyRegex = regexp.MustCompile(`^kude\.kfirs\.com/mount:(.+)`)
 
 type dockerFunction struct {
-	pwd         string
-	logger      *logrus.Entry
-	bindsRegexp *regexp.Regexp
-	binds       []string
-	name        string
-	image       string
-	_image      types.ImageSummary
-	entrypoint  []string
-	user        string
-	config      map[string]interface{}
+	pwd          string
+	logger       *logrus.Entry
+	bindsRegexp  *regexp.Regexp
+	binds        []string
+	name         string
+	image        string
+	_image       types.ImageSummary
+	entrypoint   []string
+	user         string
+	allowNetwork bool
+	config       map[string]interface{}
 }
 
 func (f *dockerFunction) pullImage(ctx context.Context, dockerClient *client.Client) error {
@@ -205,7 +206,7 @@ func (f *dockerFunction) createContainer(ctx context.Context, dockerClient *clie
 			},
 			Image:           f.image,
 			Entrypoint:      f.entrypoint,
-			NetworkDisabled: true,
+			NetworkDisabled: !f.allowNetwork,
 			Labels: map[string]string{
 				"kude":        "true",
 				"kudeVersion": pkg.GetVersion().String(),
