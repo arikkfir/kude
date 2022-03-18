@@ -15,7 +15,6 @@ import (
 )
 
 func main() {
-	viper.SetDefault("type", "Opaque")
 	pkg.Configure()
 
 	// Read configuration file
@@ -72,13 +71,18 @@ func main() {
 				yaml.Tee(yaml.SetField(yaml.KindField, yaml.NewScalarRNode("Secret"))),
 				yaml.Tee(yaml.SetK8sName(hashedName)),
 				yaml.Tee(yaml.SetAnnotation(pkg.PreviousNameAnnotationName, viper.GetString("name"))),
-				yaml.Tee(yaml.SetField("type", yaml.NewScalarRNode(viper.GetString("type")))),
 				yaml.Tee(yaml.SetField("data", yaml.NewMapRNode(&data))),
 			)
 			if err != nil {
 				return nil, fmt.Errorf("error generating secret: %w", err)
 			}
-			if viper.GetString("namespace") != "" {
+			if viper.IsSet("type") {
+				err := node.PipeE(yaml.SetField("type", yaml.NewScalarRNode(viper.GetString("type"))))
+				if err != nil {
+					return nil, fmt.Errorf("error generating secret: %w", err)
+				}
+			}
+			if viper.IsSet("namespace") {
 				err := node.PipeE(yaml.Tee(yaml.SetK8sNamespace(viper.GetString("namespace"))))
 				if err != nil {
 					return nil, fmt.Errorf("error generating secret: %w", err)
