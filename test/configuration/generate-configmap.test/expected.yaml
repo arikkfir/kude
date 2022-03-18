@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    numericAnn: "123"
+  labels:
+    app.kubernetes.io/component: test
+  name: test
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: test
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: test
+    spec:
+      containers:
+        - env:
+            - name: IMMUTABLE-FOOVAL
+              valueFrom:
+                configMapKeyRef:
+                  key: fooval
+                  name: immutable-configmap-c4b67ba77f4cf0b01938d7fc1ed731a3628dfda2
+            - name: IMMUTABLE-FOOPATH
+              valueFrom:
+                configMapKeyRef:
+                  key: foopath
+                  name: immutable-configmap
+            - name: MUTABLE-FOOVAL
+              valueFrom:
+                configMapKeyRef:
+                  key: fooval
+                  name: mutable-configmap
+            - name: MUTABLE-FOOPATH
+              valueFrom:
+                configMapKeyRef:
+                  key: foopath
+                  name: mutable-configmap
+            - name: IMPLICITLY-MUTABLE-FOOVAL
+              valueFrom:
+                configMapKeyRef:
+                  key: fooval
+                  name: implicitly-mutable-configmap
+            - name: IMPLICITLY-MUTABLE-FOOPATH
+              valueFrom:
+                configMapKeyRef:
+                  key: foopath
+                  name: implicitly-mutable-configmap
+          image: test/test
+          name: server
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+---
+apiVersion: v1
+data:
+  foopath: aW1tdXRhYmxlLWJhcg==
+  fooval: aW1tdXRhYmxlLWJhcg==
+immutable: true
+kind: ConfigMap
+metadata:
+  annotations:
+    kude.kfirs.com/previous-name: immutable-configmap
+    numericAnn: "123"
+  name: immutable-configmap-c4b67ba77f4cf0b01938d7fc1ed731a3628dfda2
+---
+apiVersion: v1
+data:
+  foopath: bXV0YWJsZS1iYXI=
+  fooval: bXV0YWJsZS1iYXI=
+immutable: false
+kind: ConfigMap
+metadata:
+  annotations:
+    kude.kfirs.com/previous-name: mutable-configmap
+    numericAnn: "123"
+  name: mutable-configmap-534fd9248175d16a12d24aa26225878cc411eb61
+---
+apiVersion: v1
+data:
+  foopath: aW1wbGljaXRseS1pbW11dGFibGUtYmFy
+  fooval: aW1wbGljaXRseS1tdXRhYmxlLWJhcg==
+kind: ConfigMap
+metadata:
+  annotations:
+    kude.kfirs.com/previous-name: implicitly-mutable-configmap
+    numericAnn: "123"
+  name: implicitly-mutable-configmap-79806bcc2cdd46b02c8ed8a6e96d68895e5d782b
