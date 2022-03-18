@@ -47,7 +47,11 @@ func BuildPipeline(dir string, writer kio.Writer) (*kio.Pipeline, error) {
 	// Build inputs
 	resources, err := kudeNode.GetSlice("resources")
 	if err != nil {
-		return nil, fmt.Errorf("failed to get resources: %w", err)
+		if _, ok := err.(kyaml.NoFieldError); !ok {
+			return nil, fmt.Errorf("failed to get pipeline: %w", err)
+		} else {
+			resources = []interface{}{}
+		}
 	}
 	inputs := make([]kio.Reader, 0)
 	for _, url := range resources {
