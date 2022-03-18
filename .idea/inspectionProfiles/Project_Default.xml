@@ -29,6 +29,7 @@
         <method importPath="github.com/arikkfir/kude/internal" receiver="*stream" name="Close" />
         <method importPath="github.com/arikkfir/kude/internal/stream" receiver="Stream" name="Close" />
         <method importPath="sigs.k8s.io/kustomize/kyaml/internal/forked/github.com/go-yaml/yaml" receiver="*Encoder" name="Close" />
+        <method importPath="compress/gzip" receiver="*Reader" name="Close" />
       </methods>
     </inspection_tool>
   </profile>
