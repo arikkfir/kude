@@ -107,13 +107,20 @@ spec:
     app.kubernetes.io/app: test
 ```
 
-Running this command:
+Run `kude`:
+
 ```shell
-/home/test/my-kude-package: $ kude > final-deployment.yaml
-/home/test/my-kude-package: $ cat final-deployment.yaml
+/home/test/my-kude-package: $ kude
+```
+
+Expect the following output (notice the annotations for each resource):
+
+```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  annotations:
+    purpose: kude-example
   name: super-microservice
 spec:
   selector:
@@ -133,6 +140,8 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  annotations:
+    purpose: kude-example
   name: super-microservice
 spec:
   ports:
