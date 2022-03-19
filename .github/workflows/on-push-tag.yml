@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v2
       - id: discover
         run: echo "::set-output name=functions::$(ls -d * | jq -R -s -c 'split("\n")[:-1]')"
-        working-directory: functions
+        working-directory: cmd/functions
   tag-functions:
     name: Tag function ${{ matrix.function }}
     needs: [ discover-functions ]
@@ -42,7 +42,6 @@ jobs:
         with:
           images: ghcr.io/arikkfir/kude/functions/${{ matrix.function }}
           tags: |
-            type=schedule,enabled=false
             type=semver,pattern={{version}}
             type=semver,pattern=v{{major}}
             type=semver,pattern={{major}}
