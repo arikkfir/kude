@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"crypto/sha1"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"github.com/arikkfir/kude/pkg"
@@ -51,7 +50,7 @@ func main() {
 			}
 			value = string(contents)
 		}
-		data[content.Key] = base64.StdEncoding.EncodeToString([]byte(value))
+		data[content.Key] = value
 		allContent.Write([]byte(value))
 	}
 
