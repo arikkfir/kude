@@ -2,10 +2,18 @@ package pkg
 
 import "github.com/blang/semver"
 
-// TODO: inject version externally (checkout https://blog.alexellis.io/inject-build-time-vars-golang/)
+var gitCommit = "unknown"
+var gitTag = "0.0.0-dev"
+var version semver.Version
 
-var kudeVersion = semver.MustParse("0.0.1")
+func init() {
+	if gitTag[0] == 'v' {
+		gitTag = gitTag[1:]
+	}
+	version = semver.MustParse(gitTag + "+" + gitCommit)
+}
 
+// GetVersion returns the kude version currently running.
 func GetVersion() semver.Version {
-	return kudeVersion
+	return version
 }

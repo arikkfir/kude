@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 	"fmt"
+	"github.com/arikkfir/kude/pkg"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -10,6 +11,8 @@ import (
 	"regexp"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
+	"strconv"
+	"strings"
 )
 
 const (
@@ -81,6 +84,8 @@ func BuildPipeline(dir string, writer kio.Writer) (*kio.Pipeline, error) {
 		image, ok := funcConfig["image"].(string)
 		if !ok {
 			return nil, fmt.Errorf("failed to get image for function '%s': %w", name, err)
+		} else if !strings.Contains(image, ":") {
+			image = image + ":v" + strconv.FormatUint(pkg.GetVersion().Major, 10)
 		}
 		entrypoint, ok := funcConfig["entrypoint"].([]string)
 		if !ok {

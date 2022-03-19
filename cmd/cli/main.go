@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/arikkfir/kude/internal"
+	"github.com/arikkfir/kude/pkg"
 	"github.com/jessevdk/go-flags"
 	"github.com/sirupsen/logrus"
 	"io"
@@ -75,7 +76,10 @@ func main() {
 	ConfigureLogging(cfg.Log.CallerInfo, level)
 
 	// Configured!
-	logrus.WithField("config", fmt.Sprintf("%+v", &cfg)).Debug("Configured")
+	logrus.
+		WithField("version", "v"+pkg.GetVersion().String()).
+		WithField("config", fmt.Sprintf("%+v", &cfg)).
+		Debug("Configured")
 
 	// Read pipeline
 	pwd, err := os.Getwd()
