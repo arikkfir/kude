@@ -79,11 +79,11 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/app: super-microservice
+      app.kubernetes.io/name: super-microservice
   template:
     metadata:
       labels:
-        app.kubernetes.io/app: super-microservice
+        app.kubernetes.io/name: super-microservice
     spec:
       containers:
         - image: "examples/super-microservice:v1"
@@ -104,7 +104,7 @@ spec:
       port: 80
       targetPort: 8080
   selector:
-    app.kubernetes.io/app: test
+    app.kubernetes.io/name: test
 ```
 
 Run `kude`:
@@ -125,11 +125,11 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/app: super-microservice
+      app.kubernetes.io/name: super-microservice
   template:
     metadata:
       labels:
-        app.kubernetes.io/app: super-microservice
+        app.kubernetes.io/name: super-microservice
     spec:
       containers:
         - image: "examples/super-microservice:v1"
@@ -149,7 +149,7 @@ spec:
       port: 80
       targetPort: 8080
   selector:
-    app.kubernetes.io/app: test
+    app.kubernetes.io/name: test
 ```
 
 ## Kude Functions
