@@ -18,6 +18,7 @@ pipeline:
   - image: ghcr.io/arikkfir/kude/functions/configmap:latest
     config:
       name: my-config
+      namespace: appX # optional
       immutable: true # optional (default in Kubernetes is false)
       contents:
         - key: foo
@@ -39,4 +40,5 @@ metadata:
   annotations:
     kude.kfirs.com/previous-name: my-config
   name: my-config-248ydjh28y42h3 # made-up hash here, mileage will vary
+  namespace: appX
 ```
