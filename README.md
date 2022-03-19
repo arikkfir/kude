@@ -30,6 +30,12 @@ function is a Docker image! This allows anyone to write Kude functions using any
     - Remote URLs
     - Other Kude packages (local & remote)
     - [More](https://github.com/hashicorp/go-getter)!
+- Name hashes for `ConfigMap` and `Secret` resources
+  - This is a useful feature introduced in `kustomize`, where the name of a `ConfigMap` or `Secret` is suffixed with a
+    hash (computed from its contents). Other resources referencing that `ConfigMap` or `Secret` are updaed to correctly
+    reference the hashed-name. 
+  - By doing this, whenever the contents of such `ConfigMap` or `Secret` are changed, their hash suffix (and hence their
+    name) would change as well, resulting in a reload of the dependent pods.
 - Extensible!
   - Kude packages are a pipeline of functions
   - Each function is just a Docker image adhering to a very (very!) simple contract (see below)
