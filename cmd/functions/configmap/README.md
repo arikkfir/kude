@@ -27,7 +27,8 @@ pipeline:
           path: FOO.txt
 ```
 
-Assuming the file `FOO.txt` contains `file-bar`, the pipeline above would add a `ConfigMap` resource that would look like this:
+Assuming the file `FOO.txt` contains `file-bar`, the pipeline above would add a `ConfigMap` resource that would look
+like this:
 
 ```yaml
 apiVersion: v1
