@@ -56,8 +56,8 @@ spec:
 ---
 apiVersion: v1
 data:
-  foopath: aW1tdXRhYmxlLWJhcg==
-  fooval: aW1tdXRhYmxlLWJhcg==
+  foopath: immutable-bar
+  fooval: immutable-bar
 immutable: true
 kind: ConfigMap
 metadata:
@@ -68,8 +68,8 @@ metadata:
 ---
 apiVersion: v1
 data:
-  foopath: bXV0YWJsZS1iYXI=
-  fooval: bXV0YWJsZS1iYXI=
+  foopath: mutable-bar
+  fooval: mutable-bar
 immutable: false
 kind: ConfigMap
 metadata:
@@ -80,8 +80,8 @@ metadata:
 ---
 apiVersion: v1
 data:
-  foopath: aW1wbGljaXRseS1pbW11dGFibGUtYmFy
-  fooval: aW1wbGljaXRseS1tdXRhYmxlLWJhcg==
+  foopath: implicitly-immutable-bar
+  fooval: implicitly-mutable-bar
 kind: ConfigMap
 metadata:
   annotations:
