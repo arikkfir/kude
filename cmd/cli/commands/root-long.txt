@@ -1,0 +1,3 @@
+Kude (Kubernetes Deployment) is a tool for deploying Kubernetes applications. It stands on the shoulders of
+giants such as Kustomize, kpt and Helm, but unifies them to one coherent model, while drawing the best features into one
+cohesive tool.

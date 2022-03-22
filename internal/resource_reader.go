@@ -3,7 +3,6 @@ package internal
 import (
 	"fmt"
 	"github.com/hashicorp/go-getter"
-	"github.com/sirupsen/logrus"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -14,9 +13,8 @@ import (
 )
 
 type resourceReader struct {
-	logger *logrus.Entry
-	pwd    string
-	url    string
+	pwd string
+	url string
 }
 
 func (rr *resourceReader) Read() ([]*kyaml.RNode, error) {
