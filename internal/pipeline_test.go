@@ -63,7 +63,19 @@ func TestDeployments(t *testing.T) {
 				t.Error(err)
 			}
 			t.Run("PATH="+path, func(t *testing.T) {
-				t.Parallel()
+				pwd, err := os.Getwd()
+				if err != nil {
+					t.Error(err)
+				}
+				if err := os.Chdir(absPath); err != nil {
+					t.Fatal(err)
+				}
+				defer func() {
+					err := os.Chdir(pwd)
+					if err != nil {
+						t.Error(err)
+					}
+				}()
 
 				actual := bytes.Buffer{}
 				pipeline, err := BuildPipeline(absPath, &kio.ByteWriter{Writer: &actual})
