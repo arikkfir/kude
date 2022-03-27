@@ -13,11 +13,11 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"github.com/vmware-labs/yaml-jsonpath/pkg/yamlpath"
 	"gopkg.in/yaml.v3"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -30,7 +30,6 @@ var mountKeyRegex = regexp.MustCompile(`^kude\.kfirs\.com/mount:(.+)`)
 
 type dockerFunction struct {
 	pwd          string
-	logger       *logrus.Entry
 	bindsRegexp  *regexp.Regexp
 	binds        []string
 	name         string
@@ -71,7 +70,7 @@ func (f *dockerFunction) pullImage(ctx context.Context, dockerClient *client.Cli
 			}
 			status := pull["status"]
 			delete(pull, "status")
-			f.logger.WithField("extra", pull).Trace(status)
+			log.Println(status)
 		}
 		if scanner.Err() != nil {
 			return fmt.Errorf("failed parsing Docker image pull output: %w", scanner.Err())
@@ -220,10 +219,9 @@ func (f *dockerFunction) createContainer(ctx context.Context, dockerClient *clie
 	if err != nil {
 		return "", nil, fmt.Errorf("failed creating Docker container: %w", err)
 	}
-	f.logger = f.logger.WithField("container", cont.ID)
 	return cont.ID, func() {
 		if err := dockerClient.ContainerRemove(ctx, cont.ID, types.ContainerRemoveOptions{}); err != nil {
-			f.logger.WithError(err).Error("failed removing container")
+			log.Printf("Failed removing container: %v", err)
 		}
 	}, nil
 }
@@ -235,7 +233,7 @@ func (f *dockerFunction) startContainer(ctx context.Context, dockerClient *clien
 	}
 	return func() {
 		if err := dockerClient.ContainerStop(ctx, containerID, nil); err != nil {
-			f.logger.WithError(err).Error("failed stopping container")
+			log.Printf("Failed stopping container: %v", err)
 		}
 	}, nil
 }

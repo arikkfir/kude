@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/arikkfir/kude/pkg"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"io"
 	"path/filepath"
 	"regexp"
@@ -59,9 +58,8 @@ func BuildPipeline(dir string, writer kio.Writer) (*kio.Pipeline, error) {
 	inputs := make([]kio.Reader, 0)
 	for _, url := range resources {
 		inputs = append(inputs, &resourceReader{
-			logger: logrus.WithField("url", url),
-			pwd:    pwd,
-			url:    url.(string),
+			pwd: pwd,
+			url: url.(string),
 		})
 	}
 
@@ -105,7 +103,6 @@ func BuildPipeline(dir string, writer kio.Writer) (*kio.Pipeline, error) {
 		}
 		filters = append(filters, &dockerFunction{
 			pwd:          pwd,
-			logger:       logrus.WithField("function", name),
 			bindsRegexp:  regexp.MustCompile(`mount://([^:]+)(?::([^:]+))?`),
 			name:         name,
 			image:        image,

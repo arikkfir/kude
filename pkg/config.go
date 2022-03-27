@@ -1,9 +1,8 @@
 package pkg
 
 import (
-	"fmt"
 	"github.com/spf13/viper"
-	"os"
+	"log"
 	"path/filepath"
 	"strings"
 )
@@ -22,8 +21,7 @@ func Configure() {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			// no-op
 		} else {
-			fmt.Fprintf(os.Stderr, "Failed reading function configuration: %s\n", err)
-			os.Exit(1)
+			log.Fatalf("Failed reading function configuration: %v", err)
 		}
 	}
 }

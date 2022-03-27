@@ -1,0 +1,2 @@
+Builds the Kude package in the current directory, reading the kude.yaml file, processing resources and
+printing out the resulting resources as YAML.
