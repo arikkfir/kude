@@ -64,8 +64,8 @@ jobs:
     strategy:
       matrix:
         function: ${{fromJson(needs.discover-functions.outputs.functions)}}
-  build-cli:
-    name: Build CLI ${{ matrix.os }}
+  build-cli-linux:
+    name: Build Linux CLI
     needs: [ build-functions ]
     runs-on: ubuntu-20.04
     steps:
@@ -74,15 +74,35 @@ jobs:
         with:
           go-version: 1.17
       - uses: actions/cache@v2
-        if: ${{ runner.os == 'Linux' }}
         with:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-
+      - run: go mod download
+      - run: go vet ./...
+      - run: go test -ldflags "-X 'github.com/arikkfir/kude/pkg.gitCommit=${{ github.sha }}'" ./...
+      - run: go build -o kude-linux-amd64 -ldflags "-X 'github.com/arikkfir/kude/pkg.gitCommit=${{ github.sha }}'" cmd/cli/main.go
+        env:
+          GOARCH: amd64
+          GOOS: linux
+      - uses: google-github-actions/auth@v0
+        with:
+          service_account: kude-github-actions@arikkfir.iam.gserviceaccount.com
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      - uses: google-github-actions/setup-gcloud@v0
+      - run: gsutil cp kude-linux-amd64 gs://arikkfir-artifacts/kude/kude-linux-amd64-${{ github.sha }}
+  build-cli-darwin:
+    name: Build Darwin CLI
+    needs: [ build-functions, build-cli-linux ]
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
       - uses: actions/cache@v2
-        if: ${{ runner.os == 'macOS' }}
         with:
           path: |
             ~/Library/Caches/go-build
@@ -91,24 +111,33 @@ jobs:
           restore-keys: ${{ runner.os }}-go-
       - run: go mod download
       - run: go vet ./...
-      - run: |-
-          set -x
-          for f in $(ls -d *); do
-            docker pull ghcr.io/arikkfir/kude/functions/${f}:${{ github.sha }}
-            docker tag ghcr.io/arikkfir/kude/functions/${f}:${{ github.sha }} ghcr.io/arikkfir/kude/functions/${f}:test
-          done
-        working-directory: cmd/functions
-      - run: go test -parallel 1 ./...
-      - run: go build -o kude-${{ matrix.os }} -ldflags "-X 'github.com/arikkfir/kude/pkg.gitCommit=${{ github.sha }}'" cmd/cli/main.go
+      - run: go build -o kude-darwin-amd64 -ldflags "-X 'github.com/arikkfir/kude/pkg.gitCommit=${{ github.sha }}'" cmd/cli/main.go
         env:
           GOARCH: amd64
-          GOOS: ${{ matrix.os }}
+          GOOS: darwin
+      - env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+        run: |
+          echo -n "${MACOS_CERTIFICATE}" | base64 --decode > certificate.p12
+          echo -n "${MACOS_CERTIFICATE_PWD}" > certificate.pwd
+          set -x
+          security create-keychain -p macos123 build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p macos123 build.keychain
+          security import certificate.p12 -k build.keychain -P "$(cat certificate.pwd)" -T /usr/bin/codesign
+          security find-identity -v build.keychain
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k macos123 build.keychain
+          /usr/bin/codesign \
+                  --force \
+                  --keychain build.keychain \
+                  --sign "Developer ID Application: Arye Kfir (9ARDRAN4L7)" \
+                  --identifier "com.kfirs.kude" \
+                  --verbose \
+                  kude-darwin-amd64
       - uses: google-github-actions/auth@v0
         with:
           service_account: kude-github-actions@arikkfir.iam.gserviceaccount.com
           credentials_json: ${{ secrets.GCP_SA_KEY }}
       - uses: google-github-actions/setup-gcloud@v0
-      - run: gsutil cp kude-${{ matrix.os }} gs://arikkfir-artifacts/kude/kude-${{ matrix.os }}-${{ github.sha }}
-    strategy:
-      matrix:
-        os: [ darwin, linux ]
+      - run: gsutil cp kude-darwin-amd64 gs://arikkfir-artifacts/kude/kude-darwin-amd64-${{ github.sha }}
