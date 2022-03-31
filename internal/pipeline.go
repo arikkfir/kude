@@ -6,6 +6,8 @@ import (
 	"github.com/arikkfir/kude/pkg"
 	"github.com/google/uuid"
 	"io"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"sigs.k8s.io/kustomize/kyaml/kio"
@@ -19,22 +21,38 @@ const (
 	Kind       = "Pipeline"
 )
 
+type Pipeline interface {
+	Execute() error
+}
+
 type Function interface {
 	GetName() string
 	Invoke(ctx context.Context, r io.Reader, w io.Writer) error
 }
 
-func BuildPipeline(dir string, writer kio.Writer) (*kio.Pipeline, error) {
+func NewPipeline(dir string, writer kio.Writer) (Pipeline, error) {
+	kudeYamlPath := filepath.Join(dir, "kude.yaml")
+	manifestReader, err := os.Open(kudeYamlPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open kude.yaml at '%s': %w", kudeYamlPath, err)
+	}
+	return NewPipelineFromReader(dir, manifestReader, writer)
+}
+
+func NewPipelineFromReader(dir string, manifestReader io.Reader, writer kio.Writer) (Pipeline, error) {
 	pwd, err := filepath.Abs(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get absolute path: %w", err)
 	}
 
 	// Read kude.yaml
-	kudeYamlPath := filepath.Join(pwd, "kude.yaml")
-	kudeNode, err := kyaml.ReadFile(kudeYamlPath)
+	yaml, err := ioutil.ReadAll(manifestReader)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read '%s': %w", kudeYamlPath, err)
+		return nil, fmt.Errorf("failed to read YAML: %w", err)
+	}
+	kudeNode, err := kyaml.Parse(string(yaml))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
 
 	// Validate apiVersion and kind

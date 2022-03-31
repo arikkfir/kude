@@ -25,7 +25,7 @@ var buildCmd = &cobra.Command{
 			return fmt.Errorf("failed to get current working directory: %w", err)
 		}
 
-		pipeline, err := internal.BuildPipeline(pwd, kio.ByteWriter{Writer: os.Stdout})
+		pipeline, err := internal.NewPipeline(pwd, kio.ByteWriter{Writer: os.Stdout})
 		if err != nil {
 			return fmt.Errorf("failed to build pipeline: %w", err)
 		}

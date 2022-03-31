@@ -70,7 +70,7 @@ func (rr *resourceReader) readDownloadedDirectory(path string) ([]*kyaml.RNode, 
 		return nil, fmt.Errorf("illegal package! '%s' must be a file, not a directory", kudeManifestURL)
 	} else {
 		var rns []*kyaml.RNode
-		pipeline, err := BuildPipeline(path, kio.WriterFunc(func(_rns []*kyaml.RNode) error {
+		pipeline, err := NewPipeline(path, kio.WriterFunc(func(_rns []*kyaml.RNode) error {
 			rns = _rns
 			return nil
 		}))
