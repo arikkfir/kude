@@ -1,7 +1,7 @@
 apiVersion: kude.kfirs.com/v1alpha1
 kind: Pipeline
 resources:
-  - github.com/arikkfir/kude//cmd/cli/testdata/local-resources/kude-deployment-dir?ref=sign-macos-binary
+  - github.com/arikkfir/kude//cmd/cli/testdata/local-resources/kude-deployment-dir?ref=main
   - service.yaml
 pipeline:
   - image: ghcr.io/arikkfir/kude/functions/annotate
