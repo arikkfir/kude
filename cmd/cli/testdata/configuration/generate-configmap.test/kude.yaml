@@ -3,7 +3,7 @@ kind: Pipeline
 resources:
   - deployment.yaml
 pipeline:
-  - image: ghcr.io/arikkfir/kude/functions/configmap:test
+  - image: ghcr.io/arikkfir/kude/functions/configmap
     config:
       name: immutable-configmap
       immutable: true
@@ -12,7 +12,7 @@ pipeline:
           value: immutable-bar
         - key: foopath
           path: immutable-foo.txt
-  - image: ghcr.io/arikkfir/kude/functions/configmap:test
+  - image: ghcr.io/arikkfir/kude/functions/configmap
     config:
       name: mutable-configmap
       immutable: false
@@ -21,7 +21,7 @@ pipeline:
           value: mutable-bar
         - key: foopath
           path: mutable-foo.txt
-  - image: ghcr.io/arikkfir/kude/functions/configmap:test
+  - image: ghcr.io/arikkfir/kude/functions/configmap
     config:
       name: implicitly-mutable-configmap
       contents:
@@ -29,7 +29,7 @@ pipeline:
           value: implicitly-mutable-bar
         - key: foopath
           path: implicitly-mutable-foo.txt
-  - image: ghcr.io/arikkfir/kude/functions/annotate:test
+  - image: ghcr.io/arikkfir/kude/functions/annotate
     config:
       name: numericAnn
       value: "123"

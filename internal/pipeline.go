@@ -12,7 +12,6 @@ import (
 	"regexp"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
-	"strconv"
 	"strings"
 )
 
@@ -101,7 +100,7 @@ func NewPipelineFromReader(dir string, manifestReader io.Reader, writer kio.Writ
 		if !ok {
 			return nil, fmt.Errorf("failed to get image for function '%s': %w", name, err)
 		} else if !strings.Contains(image, ":") {
-			image = image + ":v" + strconv.FormatUint(pkg.GetVersion().Major, 10)
+			image = image + ":" + strings.Join(pkg.GetVersion().Build, ".")
 		}
 		entrypoint, ok := funcConfig["entrypoint"].([]string)
 		if !ok {

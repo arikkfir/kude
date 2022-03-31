@@ -50,7 +50,7 @@ func TestCLI(t *testing.T) {
 				commands.RootCmd.SetArgs([]string{"build"})
 				err := commands.RootCmd.Execute()
 				if err != nil {
-					t.Fatal(fmt.Errorf("command failed: %w", err))
+					t.Fatal(fmt.Errorf("pipeline at '%s' failed: %w", path, err))
 				}
 			})
 
