@@ -59,8 +59,8 @@ jobs:
     strategy:
       matrix:
         function: ${{fromJson(needs.discover-functions.outputs.functions)}}
-  cli:
-    name: Tag CLI ${{ matrix.os }}
+  build-linux-cli:
+    name: Tag Linux CLI
     needs: [ release ]
     runs-on: ubuntu-20.04
     steps:
@@ -68,14 +68,62 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: 1.17
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-
       - run: go mod download
-      - run: go build -o kude-${{ matrix.os }} -ldflags "-X 'github.com/arikkfir/kude/pkg.gitTag=${{ github.ref_name }}' -X 'github.com/arikkfir/kude/pkg.gitCommit=${{ github.sha }}'" cmd/cli/main.go
+      - run: go build -o kude-linux-amd64 -ldflags "-X 'github.com/arikkfir/kude/pkg.gitTag=${{ github.ref_name }}' -X 'github.com/arikkfir/kude/pkg.gitCommit=${{ github.sha }}'" cmd/cli/main.go
         env:
           GOARCH: amd64
-          GOOS: ${{ matrix.os }}
-      - run: gh release upload --clobber ${{ github.ref_name }} ./kude-${{ matrix.os }}
+          GOOS: linux
+      - run: gh release upload --clobber ${{ github.ref_name }} ./kude-linux-amd64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    strategy:
-      matrix:
-        os: [ darwin, linux ]
+  build-darwin-cli:
+    name: Tag Darwin CLI
+    needs: [ release ]
+    runs-on: macos-11
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-
+      - run: go mod download
+      - run: go build -o kude-darwin-amd64 -ldflags "-X 'github.com/arikkfir/kude/pkg.gitTag=${{ github.ref_name }}' -X 'github.com/arikkfir/kude/pkg.gitCommit=${{ github.sha }}'" cmd/cli/main.go
+        env:
+          GOARCH: amd64
+          GOOS: darwin
+      - env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+        run: |
+          echo -n "${MACOS_CERTIFICATE}" | base64 --decode > certificate.p12
+          echo -n "${MACOS_CERTIFICATE_PWD}" > certificate.pwd
+          set -x
+          security create-keychain -p macos123 build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p macos123 build.keychain
+          security import certificate.p12 -k build.keychain -P "$(cat certificate.pwd)" -T /usr/bin/codesign
+          security find-identity -v build.keychain
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k macos123 build.keychain
+          /usr/bin/codesign \
+                  --force \
+                  --keychain build.keychain \
+                  --sign "Developer ID Application: Arye Kfir (9ARDRAN4L7)" \
+                  --identifier "com.kfirs.kude" \
+                  --verbose \
+                  kude-darwin-amd64
+      - run: gh release upload --clobber ${{ github.ref_name }} ./kude-darwin-amd64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
