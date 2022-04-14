@@ -2,7 +2,25 @@
 <module type="WEB_MODULE" version="4">
   <component name="Go" enabled="true" />
   <component name="NewModuleRootManager">
-    <content url="file://$MODULE_DIR$" />
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/test/scenarios/annotate/annotate-numeric-value/.kude" />
+      <excludeFolder url="file://$MODULE_DIR$/test/scenarios/annotate/annotation-string-value/.kude" />
+      <excludeFolder url="file://$MODULE_DIR$/test/scenarios/configuration/generate-configmap/.kude" />
+      <excludeFolder url="file://$MODULE_DIR$/test/scenarios/formatting/formatting-with-function/.kude" />
+      <excludeFolder url="file://$MODULE_DIR$/test/scenarios/helm/helm-remote-chart/.kude" />
+      <excludeFolder url="file://$MODULE_DIR$/test/scenarios/helm/helm-remote-chart-only/.kude" />
+      <excludeFolder url="file://$MODULE_DIR$/test/scenarios/local-resources/import-kude-dir/.kude" />
+      <excludeFolder url="file://$MODULE_DIR$/test/scenarios/local-resources/import-multiple-local-files/.kude" />
+      <excludeFolder url="file://$MODULE_DIR$/test/scenarios/local-resources/import-normal-dir/.kude" />
+      <excludeFolder url="file://$MODULE_DIR$/test/scenarios/local-resources/import-normal-file/.kude" />
+      <excludeFolder url="file://$MODULE_DIR$/test/scenarios/local-resources/kude-deployment-dir/.kude" />
+      <excludeFolder url="file://$MODULE_DIR$/test/scenarios/pipeline/multi-function/.kude" />
+      <excludeFolder url="file://$MODULE_DIR$/test/scenarios/pipeline/single-function/.kude" />
+      <excludeFolder url="file://$MODULE_DIR$/test/scenarios/remote-resources/github_dir/.kude" />
+      <excludeFolder url="file://$MODULE_DIR$/test/scenarios/remote-resources/github_files/.kude" />
+      <excludeFolder url="file://$MODULE_DIR$/test/scenarios/remote-resources/import-github-kude-dir/.kude" />
+      <excludeFolder url="file://$MODULE_DIR$/test/scenarios/secrets/generate-secret/.kude" />
+    </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
