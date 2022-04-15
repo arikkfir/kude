@@ -75,7 +75,9 @@ func main() {
 				return nil, fmt.Errorf("error generating ConfigMap: %w", err)
 			}
 			if viper.IsSet("immutable") {
-				err := node.PipeE(yaml.SetField("immutable", yaml.NewScalarRNode(viper.GetString("immutable"))))
+				immutableNode := yaml.NewScalarRNode(viper.GetString("immutable"))
+				immutableNode.YNode().Tag = "!!bool"
+				err := node.PipeE(yaml.SetField("immutable", immutableNode))
 				if err != nil {
 					return nil, fmt.Errorf("error setting immutable field: %w", err)
 				}
