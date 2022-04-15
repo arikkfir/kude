@@ -22,6 +22,7 @@ if [[ -z "${FUNCTION}" ]]; then
                      -t "ghcr.io/arikkfir/kude/functions/${FUNCTION}:${COMMIT_SHA}" \
                      --build-arg "function=${FUNCTION}" \
                      "${ROOT_DIRECTORY}"
+        docker tag "ghcr.io/arikkfir/kude/functions/${FUNCTION}:${COMMIT_SHA}" "ghcr.io/arikkfir/kude/functions/${FUNCTION}:unknown"
       fi
   done
 else
@@ -30,4 +31,5 @@ else
                -t "ghcr.io/arikkfir/kude/functions/${FUNCTION}:${COMMIT_SHA}" \
                --build-arg "function=${FUNCTION}" \
                "${ROOT_DIRECTORY}"
+  docker tag "ghcr.io/arikkfir/kude/functions/${FUNCTION}:${COMMIT_SHA}" "ghcr.io/arikkfir/kude/functions/${FUNCTION}:unknown"
 fi
