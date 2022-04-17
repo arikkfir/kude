@@ -172,6 +172,7 @@ The following functions are available:
 - [helm](./cmd/functions/helm/README.md) - Render a Helm chart
 - [label](./cmd/functions/label/README.md) - Label Kubernetes resources
 - [secret](./cmd/functions/secret/README.md) - Generate a Kubernetes Secret
+- [yq](./cmd/functions/yq/README.md) - Patch resources using `yq`
 
 ## Writing Kude Functions
 
