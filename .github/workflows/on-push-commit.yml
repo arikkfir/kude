@@ -83,7 +83,6 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-
       - run: go mod download
-      - run: go version
       - run: go vet ./...
       - run: go test -ldflags "-X 'github.com/arikkfir/kude/pkg.gitCommit=${{ github.sha }}'" ./...
       - run: go build -o kude-linux-amd64 -ldflags "-X 'github.com/arikkfir/kude/pkg.gitCommit=${{ github.sha }}'" cmd/cli/main.go

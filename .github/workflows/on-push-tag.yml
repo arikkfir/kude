@@ -6,6 +6,8 @@ defaults:
   run:
     shell: bash -eu {0}
 # TODO: detect if most recent release and tag as latest
+env:
+  GO_VERSION: "1.18"
 jobs:
   release:
     name: Create Release
@@ -67,7 +69,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
-          go-version: 1.17
+          go-version: ${{ env.GO_VERSION }}
       - uses: actions/cache@v2
         with:
           path: |
@@ -91,7 +93,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
-          go-version: 1.17
+          go-version: ${{ env.GO_VERSION }}
       - uses: actions/cache@v2
         with:
           path: |
