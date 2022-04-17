@@ -13,7 +13,6 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/google/uuid"
-	"github.com/vmware-labs/yaml-jsonpath/pkg/yamlpath"
 	"gopkg.in/yaml.v3"
 	"io"
 	"io/ioutil"
@@ -26,8 +25,6 @@ import (
 	"strings"
 )
 
-var mountKeyRegex = regexp.MustCompile(`^kude\.kfirs\.com/mount:(.+)`)
-
 type dockerFunction struct {
 	pwd          string
 	bindsRegexp  *regexp.Regexp
@@ -39,6 +36,7 @@ type dockerFunction struct {
 	user         string
 	allowNetwork bool
 	config       map[string]interface{}
+	mounts       []string
 }
 
 func (f *dockerFunction) pullImage(ctx context.Context, dockerClient *client.Client) error {
@@ -132,58 +130,27 @@ func (f *dockerFunction) createConfigFile(_ context.Context) (string, func(), er
 	return configFile.Name(), cleanup, nil
 }
 
-func (f *dockerFunction) collectBindsFromImageLabels() error {
-	configYAMLBytes, err := yaml.Marshal(f.config)
-	if err != nil {
-		return fmt.Errorf("failed marshalling configuration: %w", err)
-	}
-
-	var configYAMLNode yaml.Node
-	err = yaml.Unmarshal(configYAMLBytes, &configYAMLNode)
-	if err != nil {
-		return fmt.Errorf("failed unmarshalling configuration: %w", err)
-	}
-
-	for k, v := range f._image.Labels {
-		subMatches := mountKeyRegex.FindStringSubmatch(k)
-		if subMatches != nil && len(subMatches) == 2 {
-			yamlPath, err := yamlpath.NewPath(v)
-			if err != nil {
-				return fmt.Errorf("failed parsing YAML path '%s': %w", v, err)
-			}
-			nodes, err := yamlPath.Find(&configYAMLNode)
-			if err != nil {
-				return fmt.Errorf("failed finding YAML path '%s': %w", v, err)
-			}
-			for _, node := range nodes {
-				if node.Kind != yaml.ScalarNode {
-					return fmt.Errorf("YAML path '%s' is not a scalar", v)
-				}
-				localPath := node.Value
-				if strings.HasPrefix(localPath, "/") || strings.Contains(localPath, "..") {
-					return fmt.Errorf("non-local paths are disallowed for mounting ('%s'): %w", localPath, err)
-				}
-				resolvedPath := filepath.Join(f.pwd, localPath)
-				_, err := os.Stat(resolvedPath)
-				if err != nil {
-					return fmt.Errorf("failed statting local path '%s': %w", localPath, err)
-				}
-				f.binds = append(f.binds, fmt.Sprintf("%s:%s", resolvedPath, "/workspace/"+localPath))
-			}
-		}
-	}
-	return nil
-}
-
 func (f *dockerFunction) createContainer(ctx context.Context, dockerClient *client.Client, configFile string) (string, func(), error) {
-	err := f.collectBindsFromImageLabels()
-	if err != nil {
-		return "", nil, fmt.Errorf("failed collecting mount files: %w", err)
+	for _, bind := range f.mounts {
+		local, remote, found := strings.Cut(bind, ":")
+		if local == "" {
+			return "", nil, fmt.Errorf("illegal bind format: %s", bind)
+		} else if !found {
+			remote = local
+		}
+		absLocal, err := filepath.Abs(local)
+		if err != nil {
+			return "", nil, fmt.Errorf("could not make '%s' absolute: %w", local, err)
+		}
+		if !filepath.IsAbs(remote) {
+			remote = filepath.Join("/workspace", remote)
+		}
+		f.binds = append(f.binds, absLocal+":"+remote)
 	}
 	f.binds = append(f.binds, configFile+":"+pkg.ConfigFile)
 
 	tempDir := filepath.Join(f.pwd, ".kude", "temp")
-	err = os.MkdirAll(tempDir, os.ModePerm)
+	err := os.MkdirAll(tempDir, os.ModePerm)
 	if err != nil {
 		return "", nil, fmt.Errorf("failed creating temp directory '%s': %w", tempDir, err)
 	}
