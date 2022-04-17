@@ -14,7 +14,7 @@ pipeline:
   - image: ghcr.io/arikkfir/kude/functions/yq
     config:
       expr: |-
-        .[] |= with(
+        . |= with(
           select(.apiVersion == "apps/v1" and 
                  .kind == "Deployment" and 
                  .metadata.labels.app == "my-app");
@@ -36,7 +36,7 @@ pipeline:
   - image: ghcr.io/arikkfir/kude/functions/yq
     config:
       expr: |-
-        .[] |= with(
+        . |= with(
           select(.apiVersion == "apps/v1" and 
                  .kind == "Deployment" and 
                  .metadata.name == "first-deployment");
