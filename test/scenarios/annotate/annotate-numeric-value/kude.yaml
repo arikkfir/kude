@@ -11,3 +11,5 @@ pipeline:
     config:
       name: numericFileAnn
       path: annotation-value.txt
+    mounts:
+      - annotation-value.txt:annotation-value.txt

@@ -12,6 +12,8 @@ pipeline:
           value: immutable-bar
         - key: foopath
           path: immutable-foo.txt
+    mounts:
+      - immutable-foo.txt
   - image: ghcr.io/arikkfir/kude/functions/configmap
     config:
       name: mutable-configmap
@@ -21,6 +23,8 @@ pipeline:
           value: mutable-bar
         - key: foopath
           path: mutable-foo.txt
+    mounts:
+      - mutable-foo.txt
   - image: ghcr.io/arikkfir/kude/functions/configmap
     config:
       name: implicitly-mutable-configmap
@@ -29,6 +33,8 @@ pipeline:
           value: implicitly-mutable-bar
         - key: foopath
           path: implicitly-mutable-foo.txt
+    mounts:
+      - implicitly-mutable-foo.txt
   - image: ghcr.io/arikkfir/kude/functions/annotate
     config:
       name: numericAnn

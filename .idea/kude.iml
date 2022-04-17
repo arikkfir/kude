@@ -7,8 +7,6 @@
       <excludeFolder url="file://$MODULE_DIR$/test/scenarios/annotate/annotation-string-value/.kude" />
       <excludeFolder url="file://$MODULE_DIR$/test/scenarios/configuration/generate-configmap/.kude" />
       <excludeFolder url="file://$MODULE_DIR$/test/scenarios/formatting/formatting-with-function/.kude" />
-      <excludeFolder url="file://$MODULE_DIR$/test/scenarios/helm/helm-remote-chart/.kude" />
-      <excludeFolder url="file://$MODULE_DIR$/test/scenarios/helm/helm-remote-chart-only/.kude" />
       <excludeFolder url="file://$MODULE_DIR$/test/scenarios/local-resources/import-kude-dir/.kude" />
       <excludeFolder url="file://$MODULE_DIR$/test/scenarios/local-resources/import-multiple-local-files/.kude" />
       <excludeFolder url="file://$MODULE_DIR$/test/scenarios/local-resources/import-normal-dir/.kude" />
@@ -20,6 +18,8 @@
       <excludeFolder url="file://$MODULE_DIR$/test/scenarios/remote-resources/github_files/.kude" />
       <excludeFolder url="file://$MODULE_DIR$/test/scenarios/remote-resources/import-github-kude-dir/.kude" />
       <excludeFolder url="file://$MODULE_DIR$/test/scenarios/secrets/generate-secret/.kude" />
+      <excludeFolder url="file://$MODULE_DIR$/test/scenarios/helm/helm-remote-chart/.kude" />
+      <excludeFolder url="file://$MODULE_DIR$/test/scenarios/helm/helm-remote-chart-only/.kude" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

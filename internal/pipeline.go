@@ -118,6 +118,12 @@ func NewPipelineFromReader(dir string, manifestReader io.Reader, writer kio.Writ
 		if !ok {
 			config = map[string]interface{}{}
 		}
+		var mounts []string
+		if list, ok := funcConfig["mounts"].([]interface{}); ok {
+			for _, bind := range list {
+				mounts = append(mounts, bind.(string))
+			}
+		}
 		filters = append(filters, &dockerFunction{
 			pwd:          pwd,
 			bindsRegexp:  regexp.MustCompile(`mount://([^:]+)(?::([^:]+))?`),
@@ -127,6 +133,7 @@ func NewPipelineFromReader(dir string, manifestReader io.Reader, writer kio.Writ
 			user:         user,
 			allowNetwork: allowNetwork,
 			config:       config,
+			mounts:       mounts,
 		})
 	}
 	filters = append(filters, &referencesResolverFunction{})

@@ -31,4 +31,3 @@ ENTRYPOINT ["/function"]
 
 ### Labels
 LABEL "kude.kfirs.com/minimum-version"="0.0.0-dev"
-LABEL "kude.kfirs.com/mount:1"="$.path"
