@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/arikkfir/kude/pkg"
 	"github.com/blang/semver"
@@ -138,14 +139,18 @@ func (f *dockerFunction) createContainer(ctx context.Context, dockerClient *clie
 		} else if !found {
 			remote = local
 		}
-		absLocal, err := filepath.Abs(local)
-		if err != nil {
-			return "", nil, fmt.Errorf("could not make '%s' absolute: %w", local, err)
+		if !filepath.IsAbs(local) {
+			local = filepath.Join(f.pwd, local)
+		}
+		if _, err := os.Stat(local); errors.Is(err, os.ErrNotExist) {
+			return "", nil, fmt.Errorf("could not find '%s'", local)
+		} else if err != nil {
+			return "", nil, fmt.Errorf("failed stat for '%s': %w", local, err)
 		}
 		if !filepath.IsAbs(remote) {
 			remote = filepath.Join("/workspace", remote)
 		}
-		f.binds = append(f.binds, absLocal+":"+remote)
+		f.binds = append(f.binds, local+":"+remote)
 	}
 	f.binds = append(f.binds, configFile+":"+pkg.ConfigFile)
 

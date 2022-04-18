@@ -10,4 +10,6 @@ pipeline:
   - image: ghcr.io/arikkfir/kude/functions/annotate
     config:
       name: foo2
-      value: bar2
+      path: annotation-value.txt
+    mounts:
+      - annotation-value.txt
