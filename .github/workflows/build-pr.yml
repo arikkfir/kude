@@ -2,8 +2,6 @@ name: Build PR
 
 on:
   pull_request:
-    paths:
-      - .github/workflows/build.yml
     types:
       - synchronize
       - opened
