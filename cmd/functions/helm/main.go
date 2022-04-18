@@ -3,6 +3,7 @@ package main
 import (
 	"archive/tar"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"github.com/arikkfir/kude/pkg"
 	"github.com/spf13/viper"
@@ -98,11 +99,10 @@ func main() {
 
 	helmFile := filepath.Join(root, "helm")
 	if _, err := os.Stat(helmFile); err != nil {
-		if os.IsNotExist(err) {
-
+		if errors.Is(err, os.ErrNotExist) {
 			helmArchiveFile := filepath.Join(root, "helm-v"+helmVersion+"-"+arch+".tar.gz")
 			if _, err := os.Stat(helmArchiveFile); err != nil {
-				if os.IsNotExist(err) {
+				if errors.Is(err, os.ErrNotExist) {
 					err := downloadHelmArchive(helmArchiveFile)
 					if err != nil {
 						panic(err)
