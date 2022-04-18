@@ -1,14 +1,23 @@
-name: Build
+name: Build PR
+
 on:
-  push:
-    branches: [ '*' ]
-  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/build.yml
+    types:
+      - synchronize
+      - opened
+      - reopened
+
 defaults:
   run:
     shell: bash -eu {0}
+
 env:
   GO_VERSION: "1.18"
+
 jobs:
+
   discover-functions:
     outputs:
       functions: ${{ steps.discover.outputs.functions }}
@@ -18,24 +27,31 @@ jobs:
       - id: discover
         run: echo "::set-output name=functions::$(ls -d * | jq -R -s -c 'split("\n")[:-1]')"
         working-directory: cmd/functions
+
   build-functions:
-    name: Build function ${{ matrix.function }}
-    needs: [ discover-functions ]
+    name: "Build function: ${{ matrix.function }}"
+    needs: discover-functions
     permissions:
       contents: read
       packages: write
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        function: ${{fromJson(needs.discover-functions.outputs.functions)}}
     steps:
       - uses: actions/checkout@v2
       - uses: docker/setup-buildx-action@v1
         id: buildx
         with:
           install: true
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-multi-buildx-${{ github.sha }}
-          restore-keys: ${{ runner.os }}-multi-buildx-
+          key: buildx-${{ runner.os }}-${{ matrix.function }}-${{ github.sha }}
+          restore-keys: |
+            buildx-${{ runner.os }}-${{ matrix.function }}-
+            buildx-${{ runner.os }}-
+            buildx-
       - uses: docker/login-action@v1
         with:
           registry: ghcr.io
@@ -63,12 +79,10 @@ jobs:
           push: true
           tags: ${{ steps.docker-meta.outputs.tags }}
       - run: rm -rf /tmp/.buildx-cache && mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-    strategy:
-      matrix:
-        function: ${{fromJson(needs.discover-functions.outputs.functions)}}
+
   build-cli-linux:
     name: Build Linux CLI
-    needs: [ build-functions ]
+    needs: build-functions
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
@@ -80,8 +94,10 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-go-
+          key: golang-${{ runner.os }}-${{ hashFiles('**/go.sum') }}-${{ github.sha }}
+          restore-keys: |
+            golang-${{ runner.os }}-${{ hashFiles('**/go.sum') }}-
+            golang-${{ runner.os }}-
       - run: go mod download
       - run: go vet ./...
       - run: go test -ldflags "-X 'github.com/arikkfir/kude/pkg.gitCommit=${{ github.sha }}'" ./...
@@ -95,9 +111,10 @@ jobs:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
       - uses: google-github-actions/setup-gcloud@v0
       - run: gsutil cp kude-linux-amd64 gs://arikkfir-artifacts/kude/kude-linux-amd64-${{ github.sha }}
+
   build-cli-darwin:
     name: Build Darwin CLI
-    needs: [ build-functions, build-cli-linux ]
+    needs: build-functions
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
@@ -109,8 +126,10 @@ jobs:
           path: |
             ~/Library/Caches/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-go-
+          key: golang-${{ runner.os }}-${{ hashFiles('**/go.sum') }}-${{ github.sha }}
+          restore-keys: |
+            golang-${{ runner.os }}-${{ hashFiles('**/go.sum') }}-
+            golang-${{ runner.os }}-
       - run: go mod download
       - run: go vet ./...
       - run: go build -o kude-darwin-amd64 -ldflags "-X 'github.com/arikkfir/kude/pkg.gitCommit=${{ github.sha }}'" cmd/cli/main.go
