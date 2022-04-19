@@ -63,7 +63,6 @@ jobs:
             type=semver,pattern={{major}}
             type=semver,pattern={{major}}.{{minor}}
             type=ref,event=tag
-            type=ref,event=branch
             type=sha,prefix=,format=short
             type=sha,prefix=,format=long
       - uses: docker/build-push-action@v2

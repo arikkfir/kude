@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -21,11 +22,8 @@ func (r *resourceAggregator) Add(path string) error {
 		if err != nil {
 			return fmt.Errorf("failed to aggregate resources from '%s': %w", path, err)
 		}
-	} else {
-		err := r.AddFile(path)
-		if err != nil {
-			return fmt.Errorf("failed to aggregate resources from '%s': %w", path, err)
-		}
+	} else if err := r.AddFile(path); err != nil {
+		return fmt.Errorf("failed to aggregate resources from '%s': %w", path, err)
 	}
 	return nil
 }
@@ -72,7 +70,7 @@ func (r *resourceAggregator) walkSimpleDirectory(path string, e fs.DirEntry, err
 	} else if e.IsDir() {
 		kudeYAMLFile := filepath.Join(path, "kude.yaml")
 		if stat, err := os.Stat(kudeYAMLFile); err != nil {
-			if os.IsNotExist(err) {
+			if errors.Is(err, os.ErrNotExist) {
 				// no kude.yaml inside this directory; let walker traverse into this path
 				return nil
 			} else {
