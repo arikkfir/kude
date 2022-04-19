@@ -24,8 +24,8 @@ jobs:
         run: echo "::set-output name=functions::$(ls -d * | jq -R -s -c 'split("\n")[:-1]')"
         working-directory: cmd/functions
 
-  tag-functions:
-    name: "Tag function: ${{ matrix.function }}"
+  build-functions:
+    name: "Build function: ${{ matrix.function }}"
     needs: discover-functions
     permissions:
       contents: read
@@ -35,6 +35,19 @@ jobs:
       matrix:
         function: ${{fromJson(needs.discover-functions.outputs.functions)}}
     steps:
+      - uses: actions/checkout@v2
+      - uses: docker/setup-buildx-action@v1
+        id: buildx
+        with:
+          install: true
+      - uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: buildx-${{ runner.os }}-${{ matrix.function }}-${{ github.sha }}
+          restore-keys: |
+            buildx-${{ runner.os }}-${{ matrix.function }}-
+            buildx-${{ runner.os }}-
+            buildx-
       - uses: docker/login-action@v1
         with:
           registry: ghcr.io
@@ -50,19 +63,23 @@ jobs:
             type=semver,pattern={{major}}
             type=semver,pattern={{major}}.{{minor}}
             type=ref,event=tag
-      - run: |-
-          docker pull ${IMAGE}
-          TAGS="${{ steps.docker-meta.outputs.tags }}"
-          for tag in ${TAGS}; do
-            docker tag ${IMAGE} ${tag}
-            docker push ${tag}
-          done
-        env:
-          IMAGE: ghcr.io/arikkfir/kude/functions/${{ matrix.function }}:${{ github.sha }}
+            type=sha,prefix=,format=short
+            type=sha,prefix=,format=long
+      - uses: docker/build-push-action@v2
+        with:
+          build-args: function=${{ matrix.function }}
+          builder: ${{ steps.buildx.outputs.name }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,mode=max,dest=/tmp/.buildx-cache-new
+          file: cmd/functions/${{ matrix.function }}/Dockerfile
+          labels: ${{ steps.docker-meta.outputs.labels }}
+          push: true
+          tags: ${{ steps.docker-meta.outputs.tags }}
+      - run: rm -rf /tmp/.buildx-cache && mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
-  build-linux-cli:
-    name: Tag Linux CLI
-    needs: tag-functions
+  build-cli-linux:
+    name: Build Linux CLI
+    needs: build-functions
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
@@ -89,9 +106,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  build-darwin-cli:
-    name: Tag Darwin CLI
-    needs: tag-functions
+  build-cli-darwin:
+    name: Build Darwin CLI
+    needs: build-functions
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
@@ -101,7 +118,7 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: |
-            ~/.cache/go-build
+            ~/Library/Caches/go-build
             ~/go/pkg/mod
           key: golang-${{ runner.os }}-${{ hashFiles('**/go.sum') }}-${{ github.sha }}
           restore-keys: |
@@ -109,7 +126,6 @@ jobs:
             golang-${{ runner.os }}-
       - run: go mod download
       - run: go vet ./...
-      - run: go test -ldflags "-X 'github.com/arikkfir/kude/pkg.gitTag=${{ github.ref_name }}' -X 'github.com/arikkfir/kude/pkg.gitCommit=${{ github.sha }}'" ./...
       - run: go build -o kude-darwin-amd64 -ldflags "-X 'github.com/arikkfir/kude/pkg.gitTag=${{ github.ref_name }}' -X 'github.com/arikkfir/kude/pkg.gitCommit=${{ github.sha }}'" cmd/cli/main.go
         env:
           GOARCH: amd64
