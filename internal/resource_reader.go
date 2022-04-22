@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"github.com/hashicorp/go-getter/v2"
 	"io/ioutil"
+	"log"
 	"os"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 type resourceReader struct {
-	pwd string
-	url string
+	logger *log.Logger
+	pwd    string
+	url    string
 }
 
 func (rr *resourceReader) Read() ([]*kyaml.RNode, error) {
@@ -33,7 +35,7 @@ func (rr *resourceReader) Read() ([]*kyaml.RNode, error) {
 		return nil, fmt.Errorf("failed to download '%s': %w", rr.url, err)
 	}
 
-	agg := resourceAggregator{}
+	agg := resourceAggregator{logger: rr.logger}
 	//TODO: defer os.RemoveAll(path)
 
 	if err := agg.Add(result.Dst); err != nil {

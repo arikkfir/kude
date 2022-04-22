@@ -7,135 +7,122 @@ import (
 	"errors"
 	"fmt"
 	"github.com/arikkfir/kude/pkg"
-	"github.com/blang/semver"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
-	"github.com/google/uuid"
 	"gopkg.in/yaml.v3"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 	"strings"
+	"time"
 )
 
+var containerStopTimeout = 30 * time.Second
+
+func isLatest(image *types.ImageSummary) bool {
+	for _, tag := range image.RepoTags {
+		if tag == "latest" {
+			return true
+		}
+	}
+	return false
+}
+
 type dockerFunction struct {
+	logger       *log.Logger
 	pwd          string
-	bindsRegexp  *regexp.Regexp
-	binds        []string
 	name         string
 	image        string
-	_image       types.ImageSummary
 	entrypoint   []string
 	user         string
+	workDir      string
 	allowNetwork bool
 	config       map[string]interface{}
 	mounts       []string
+	timeout      time.Duration
 }
 
-func (f *dockerFunction) pullImage(ctx context.Context, dockerClient *client.Client) error {
+func (f *dockerFunction) Filter(rns []*kyaml.RNode) ([]*kyaml.RNode, error) {
+	f.logger.Printf("Invoking function '%s' (%s)", f.image, f.name)
+	logger := log.New(f.logger.Writer(), f.logger.Prefix()+"--> ", f.logger.Flags())
+	ctx, cancel := context.WithTimeout(context.Background(), f.timeout)
+	defer cancel()
+	dockerClient, err := client.NewClientWithOpts(client.FromEnv)
+	if err != nil {
+		return nil, fmt.Errorf("failed creating Docker client for function '%s': %w", f.name, err)
+	}
+
+	////////////////////////////////////////////////////////////////////////////
+	// PULL IMAGE
+	////////////////////////////////////////////////////////////////////////////
 	images, err := dockerClient.ImageList(ctx, types.ImageListOptions{
-		Filters: filters.NewArgs(
-			filters.Arg("reference", f.image),
-		),
+		Filters: filters.NewArgs(filters.Arg("reference", f.image)),
 	})
 	if err != nil {
-		return fmt.Errorf("failed listing images: %w", err)
-	}
-
-	if len(images) > 1 {
-		return fmt.Errorf("found multiple matching images")
+		return nil, fmt.Errorf("failed pulling image: %w", err)
+	} else if len(images) > 1 {
+		return nil, fmt.Errorf("found multiple matching images")
 	} else if len(images) == 0 || isLatest(&images[0]) {
-		imagePullReader, err := dockerClient.ImagePull(ctx, f.image, types.ImagePullOptions{})
+		logger.Printf("Pulling image '%s'", f.image)
+		r, err := dockerClient.ImagePull(ctx, f.image, types.ImagePullOptions{})
 		if err != nil {
-			return fmt.Errorf("failed pulling Docker image '%s' of function '%s': %w", f.image, f.name, err)
+			return nil, fmt.Errorf("failed pulling image: %w", err)
 		}
-		defer func(imagePullReader io.ReadCloser) { _ = imagePullReader.Close() }(imagePullReader)
-
-		scanner := bufio.NewScanner(imagePullReader)
-		for scanner.Scan() {
-			line := scanner.Text()
+		defer r.Close()
+		pullLog := log.New(logger.Writer(), "---"+logger.Prefix(), logger.Flags())
+		s := bufio.NewScanner(r)
+		for s.Scan() {
+			line := s.Text()
 			var pull map[string]interface{}
-			err := json.Unmarshal([]byte(line), &pull)
-			if err != nil {
-				return fmt.Errorf("failed parsing Docker image pull output: %w", err)
+			if err := json.Unmarshal([]byte(line), &pull); err != nil {
+				return nil, fmt.Errorf("failed parsing image pull output: %w", err)
 			}
-			status := pull["status"]
-			delete(pull, "status")
-			log.Println(status)
+			pullLog.Println(pull["status"])
 		}
-		if scanner.Err() != nil {
-			return fmt.Errorf("failed parsing Docker image pull output: %w", scanner.Err())
-		}
-
-		images, err = dockerClient.ImageList(ctx, types.ImageListOptions{
-			Filters: filters.NewArgs(
-				filters.Arg("reference", f.image),
-			),
-		})
-		if err != nil {
-			return fmt.Errorf("failed listing images: %w", err)
-		} else if len(images) != 1 {
-			return fmt.Errorf("expected images list length to be 1")
+		if s.Err() != nil {
+			return nil, fmt.Errorf("failed parsing image pull output: %w", s.Err())
 		}
 	}
 
-	minVersionValue, ok := images[0].Labels["kude.kfirs.com/minimum-version"]
-	if ok {
-		minVersion, err := semver.Parse(minVersionValue)
-		if err != nil {
-			return fmt.Errorf("failed parsing minimum version '%s': %w", minVersionValue, err)
-		}
-		if pkg.GetVersion().LT(minVersion) {
-			//goland:noinspection GoErrorStringFormat
-			return fmt.Errorf("Kude version '%s' or higher is required", minVersionValue)
-		}
-	}
-
-	f._image = images[0]
-	return nil
-}
-
-func (f *dockerFunction) createConfigFile(_ context.Context) (string, func(), error) {
-	configFileName := f.name
-	configFileName = strings.ReplaceAll(configFileName, ":", "_")
-	configFileName = strings.ReplaceAll(configFileName, "/", "_")
-	configFileName = strings.ReplaceAll(configFileName, "\\", "_")
-	configFileName = strings.ReplaceAll(configFileName, "?", "_")
-	configFileName = strings.ReplaceAll(configFileName, "*", "_")
-	configFileName = strings.ReplaceAll(configFileName, "(", "_")
-	configFileName = strings.ReplaceAll(configFileName, ")", "_")
-	configFile, err := ioutil.TempFile("", configFileName+"-*.yaml")
+	////////////////////////////////////////////////////////////////////////////
+	// CREATE CONFIG FILE
+	////////////////////////////////////////////////////////////////////////////
+	configFile, err := ioutil.TempFile("", "*.yaml")
 	if err != nil {
-		return "", nil, fmt.Errorf("failed creating temporary file: %w", err)
+		return nil, fmt.Errorf("failed creating temporary file: %w", err)
 	}
-	cleanup := func() { os.Remove(configFile.Name()) }
-
+	defer os.Remove(configFile.Name())
 	configEncoder := yaml.NewEncoder(configFile)
-	err = configEncoder.Encode(f.config)
-	if err != nil {
-		return "", cleanup, fmt.Errorf("failed marshalling configuration: %w", err)
+	if err := configEncoder.Encode(f.config); err != nil {
+		return nil, fmt.Errorf("failed marshalling configuration: %w", err)
+	} else if err := configEncoder.Close(); err != nil {
+		return nil, fmt.Errorf("failed marshalling configuration remainder: %w", err)
 	}
+	f.mounts = append(f.mounts, configFile.Name()+":"+pkg.ConfigFile)
 
-	err = configEncoder.Close()
-	if err != nil {
-		return "", cleanup, fmt.Errorf("failed marshalling configuration remainder: %w", err)
+	////////////////////////////////////////////////////////////////////////////
+	// PREPARE WORKSPACE TEMP DIRECTORY
+	////////////////////////////////////////////////////////////////////////////
+	tempDir := filepath.Join(f.pwd, ".kude", "temp")
+	if err := os.MkdirAll(tempDir, os.ModePerm); err != nil {
+		return nil, fmt.Errorf("failed creating temp directory '%s': %w", tempDir, err)
 	}
-	return configFile.Name(), cleanup, nil
-}
+	f.mounts = append(f.mounts, tempDir+":/workspace/temp")
 
-func (f *dockerFunction) createContainer(ctx context.Context, dockerClient *client.Client, configFile string) (string, func(), error) {
-	for _, bind := range f.mounts {
-		local, remote, found := strings.Cut(bind, ":")
+	////////////////////////////////////////////////////////////////////////////
+	// PREPARE BINDS
+	////////////////////////////////////////////////////////////////////////////
+	var binds []string
+	for _, mount := range f.mounts {
+		local, remote, found := strings.Cut(mount, ":")
 		if local == "" {
-			return "", nil, fmt.Errorf("illegal bind format: %s", bind)
+			return nil, fmt.Errorf("invalid mount format: %s", mount)
 		} else if !found {
 			remote = local
 		}
@@ -143,192 +130,135 @@ func (f *dockerFunction) createContainer(ctx context.Context, dockerClient *clie
 			local = filepath.Join(f.pwd, local)
 		}
 		if _, err := os.Stat(local); errors.Is(err, os.ErrNotExist) {
-			return "", nil, fmt.Errorf("could not find '%s'", local)
+			return nil, fmt.Errorf("could not find '%s'", local)
 		} else if err != nil {
-			return "", nil, fmt.Errorf("failed stat for '%s': %w", local, err)
+			return nil, fmt.Errorf("failed stat for '%s': %w", local, err)
 		}
 		if !filepath.IsAbs(remote) {
 			remote = filepath.Join("/workspace", remote)
 		}
-		f.binds = append(f.binds, local+":"+remote)
+		logger.Printf("Mounting '%s' as '%s'", local, remote)
+		binds = append(binds, local+":"+remote)
 	}
-	f.binds = append(f.binds, configFile+":"+pkg.ConfigFile)
 
-	tempDir := filepath.Join(f.pwd, ".kude", "temp")
-	err := os.MkdirAll(tempDir, os.ModePerm)
-	if err != nil {
-		return "", nil, fmt.Errorf("failed creating temp directory '%s': %w", tempDir, err)
-	}
-	f.binds = append(f.binds, tempDir+":/workspace/temp")
-
-	containerName := f.name + uuid.New().String()
+	////////////////////////////////////////////////////////////////////////////
+	// CREATE CONTAINER
+	////////////////////////////////////////////////////////////////////////////
+	logger.Printf("Creating container")
 	cont, err := dockerClient.ContainerCreate(
 		ctx,
 		&container.Config{
-			AttachStderr: true,
-			AttachStdout: true,
-			AttachStdin:  true,
-			OpenStdin:    true,
-			StdinOnce:    true,
-			User:         f.user,
-			Env: []string{
-				"KUDE=true",
-				"KUDE_VERSION=" + pkg.GetVersion().String(),
-			},
+			AttachStderr:    true,
+			AttachStdout:    true,
+			AttachStdin:     true,
+			OpenStdin:       true,
+			StdinOnce:       true,
+			Tty:             false, // Important to disable this, so that the output logs are multiplexed (stdout/stderr)
+			User:            f.user,
+			WorkingDir:      f.workDir,
+			Env:             []string{"KUDE=true", "KUDE_VERSION=" + pkg.GetVersion().String()},
 			Image:           f.image,
 			Entrypoint:      f.entrypoint,
 			NetworkDisabled: !f.allowNetwork,
-			Labels: map[string]string{
-				"kude":        "true",
-				"kudeVersion": pkg.GetVersion().String(),
-			},
+			Labels:          map[string]string{"kude": "true", "kudeVersion": pkg.GetVersion().String()},
 		},
-		&container.HostConfig{Binds: f.binds},
+		&container.HostConfig{Binds: binds},
 		nil,
 		nil,
-		containerName,
+		"",
 	)
 	if err != nil {
-		return "", nil, fmt.Errorf("failed creating Docker container: %w", err)
+		return nil, fmt.Errorf("failed creating container: %w", err)
 	}
-	return cont.ID, func() {
+	defer func() {
 		if err := dockerClient.ContainerRemove(ctx, cont.ID, types.ContainerRemoveOptions{}); err != nil {
-			log.Printf("Failed removing container: %v", err)
+			logger.Printf("Failed removing container: %v", err)
 		}
-	}, nil
-}
+	}()
 
-func (f *dockerFunction) startContainer(ctx context.Context, dockerClient *client.Client, containerID string) (func(), error) {
-	err := dockerClient.ContainerStart(ctx, containerID, types.ContainerStartOptions{})
-	if err != nil {
-		return nil, fmt.Errorf("failed starting Docker container: %w", err)
+	////////////////////////////////////////////////////////////////////////////
+	// START CONTAINER
+	////////////////////////////////////////////////////////////////////////////
+	logger.Printf("Starting container")
+	if err := dockerClient.ContainerStart(ctx, cont.ID, types.ContainerStartOptions{}); err != nil {
+		return nil, fmt.Errorf("failed starting container: %w", err)
 	}
-	return func() {
-		if err := dockerClient.ContainerStop(ctx, containerID, nil); err != nil {
-			log.Printf("Failed stopping container: %v", err)
+	defer func() {
+		if err := dockerClient.ContainerStop(ctx, cont.ID, &containerStopTimeout); err != nil {
+			logger.Printf("Failed stopping container: %v", err)
 		}
-	}, nil
-}
+	}()
 
-func (f *dockerFunction) sendResources(ctx context.Context, dockerClient *client.Client, containerID string, rns []*kyaml.RNode) error {
-	stdinAttachment, err := dockerClient.ContainerAttach(ctx, containerID, types.ContainerAttachOptions{
-		Stdin:  true,
-		Stream: true,
-	})
-	if err != nil {
-		return fmt.Errorf("failed attaching stdin writer to Docker container: %w", err)
-	}
-	err = kio.ByteWriter{Writer: stdinAttachment.Conn}.Write(rns)
-	if err != nil {
-		return fmt.Errorf("failed sending resources to Docker container: %w", err)
-	}
-	stdinAttachment.Close()
-	return nil
-}
-
-func (f *dockerFunction) waitForContainer(ctx context.Context, dockerClient *client.Client, containerID string) (container.ContainerWaitOKBody, error) {
-	statusCh, errCh := dockerClient.ContainerWait(ctx, containerID, container.WaitConditionNotRunning)
-	var exit container.ContainerWaitOKBody
-	select {
-	case err := <-errCh:
+	////////////////////////////////////////////////////////////////////////////
+	// PUSH GIVEN RESOURCES INTO CONTAINER stdin
+	////////////////////////////////////////////////////////////////////////////
+	logger.Println("Pushing resources to container...")
+	go func() {
+		hijack, err := dockerClient.ContainerAttach(ctx, cont.ID, types.ContainerAttachOptions{Stdin: true, Stream: true})
 		if err != nil {
-			return exit, fmt.Errorf("failed waiting for container to exit: %w", err)
-		} else {
-			return exit, fmt.Errorf("failed waiting for container to exit: nil")
+			logger.Fatalf("Failed attaching to container stdin: %v", err)
 		}
-	case exit = <-statusCh:
-		// no-op
-	}
-	return exit, nil
-}
+		defer hijack.Close()
 
-func (f *dockerFunction) getContainerOutput(ctx context.Context, dockerClient *client.Client, containerID string) (io.Reader, error) {
-	readers, err := dockerClient.ContainerAttach(ctx, containerID, types.ContainerAttachOptions{
-		Stdout: true,
-		Stderr: true,
-		Logs:   true,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed attaching stdout/stderr readers to Docker container: %w", err)
-	}
-	defer readers.Close()
+		err = kio.ByteWriter{Writer: hijack.Conn}.Write(rns)
+		if err != nil {
+			logger.Printf("Failed sending resources to Docker container: %v", err)
+		}
+	}()
 
-	// Start copying container output to our stderr and our output pipe
+	////////////////////////////////////////////////////////////////////////////
+	// START READING RESOURCES FROM CONTAINER stdout, AND PIPING ITS stderr
+	////////////////////////////////////////////////////////////////////////////
+	logger.Println("Reading resources from container...")
 	pr, pw, err := os.Pipe()
 	if err != nil {
 		return nil, fmt.Errorf("failed creating pipe for returning function results: %w", err)
 	}
-	_, err = stdcopy.StdCopy(pw, os.Stderr, readers.Reader)
+	logs, err := dockerClient.ContainerLogs(ctx, cont.ID, types.ContainerLogsOptions{
+		Follow:     true,
+		ShowStdout: true,
+		ShowStderr: true,
+		Tail:       "all",
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed reading stdout/stderr from Docker container: %w", err)
+		return nil, fmt.Errorf("failed attaching to container to read stdout/stderr: %w", err)
 	}
-	err = pw.Close()
-	if err != nil {
-		return nil, fmt.Errorf("failed closing pipe for returning function results: %w", err)
-	}
-	return pr, nil
-}
+	defer logs.Close()
+	go func() {
+		if _, err := stdcopy.StdCopy(pw, &logWriter{logger}, logs); err != nil {
+			logger.Printf("Failed copying container output: %v", err)
+		}
+		if err := pw.Close(); err != nil {
+			logger.Fatalf("Failed closing container output writer: %v", err)
+		}
+	}()
 
-func (f *dockerFunction) Filter(rns []*kyaml.RNode) ([]*kyaml.RNode, error) {
-	ctx := context.Background()
-	dockerClient, err := client.NewClientWithOpts(client.FromEnv)
+	////////////////////////////////////////////////////////////////////////////
+	// READ RESOURCES INTO YAML RESOURCE NODES
+	////////////////////////////////////////////////////////////////////////////
+	logger.Println("Parsing & validating resources...")
+	outputRNs, err := (&kio.ByteReader{Reader: pr}).Read()
 	if err != nil {
-		return nil, fmt.Errorf("failed creating Docker client for function '%s': %w", f.name, err)
-	}
-
-	err = f.pullImage(ctx, dockerClient)
-	if err != nil {
-		return nil, fmt.Errorf("failed pulling Docker image of function '%s': %w", f.name, err)
-	}
-
-	configFile, configFileCleanup, err := f.createConfigFile(ctx)
-	if configFileCleanup != nil {
-		defer configFileCleanup()
-	}
-	if err != nil {
-		return nil, fmt.Errorf("failed creating configuration file for function '%s': %w", f.name, err)
+		return nil, fmt.Errorf("failed reading resources: %w", err)
 	}
 
-	containerID, createContainerCleanup, err := f.createContainer(ctx, dockerClient, configFile)
-	if createContainerCleanup != nil {
-		defer createContainerCleanup()
+	////////////////////////////////////////////////////////////////////////////
+	// WAIT FOR CONTAINER TO EXIT
+	////////////////////////////////////////////////////////////////////////////
+	logger.Println("Waiting for container to exit...")
+	// TODO: wait on channels for a few seconds, and only then print "Waiting for container to exit..." (reduce unnecessary logs)
+	statusCh, errCh := dockerClient.ContainerWait(ctx, cont.ID, container.WaitConditionNotRunning)
+	var exit container.ContainerWaitOKBody
+	select {
+	case err := <-errCh:
+		return nil, fmt.Errorf("failed waiting for container to exit: %w", err)
+	case exit = <-statusCh:
+		err := exit.Error
+		if err != nil {
+			return nil, fmt.Errorf("failed waiting for container to exit: %s", err.Message)
+		} else if exit.StatusCode != 0 {
+			return nil, fmt.Errorf("container failed with exit code %d", exit.StatusCode)
+		}
 	}
-	if err != nil {
-		return nil, fmt.Errorf("failed creating Docker container for function '%s': %w", f.name, err)
-	}
-
-	startContainerCleanup, err := f.startContainer(ctx, dockerClient, containerID)
-	if startContainerCleanup != nil {
-		defer startContainerCleanup()
-	}
-	if err != nil {
-		return nil, fmt.Errorf("failed starting Docker container for function '%s': %w", f.name, err)
-	}
-
-	err = f.sendResources(ctx, dockerClient, containerID, rns)
-	if err != nil {
-		return nil, fmt.Errorf("failed sending resources to Docker container for function '%s': %w", f.name, err)
-	}
-
-	exit, err := f.waitForContainer(ctx, dockerClient, containerID)
-	if err != nil {
-		return nil, fmt.Errorf("failed waiting for Docker container to exit for function '%s': %w", f.name, err)
-	}
-
-	pr, err := f.getContainerOutput(ctx, dockerClient, containerID)
-	if err != nil {
-		return nil, fmt.Errorf("failed getting output from Docker container for function '%s': %w", f.name, err)
-	}
-
-	rns, err = (&kio.ByteReader{Reader: pr}).Read()
-	if err != nil {
-		return nil, fmt.Errorf("failed reading function output: %w", err)
-	}
-
-	if exit.Error != nil {
-		return nil, fmt.Errorf("container for function '%s' exited with error: %s", f.name, exit.Error.Message)
-	} else if exit.StatusCode != 0 {
-		return nil, fmt.Errorf("container for function '%s' exited with status code: %d", f.name, exit.StatusCode)
-	}
-	return rns, nil
+	return outputRNs, nil
 }

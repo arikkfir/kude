@@ -2,6 +2,7 @@ package main
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"errors"
 	"fmt"
@@ -133,24 +134,32 @@ func main() {
 	cmd := exec.Command(helmFile, viper.GetStringSlice("args")...)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = pw
-	if viper.IsSet("path") {
-		cmd.Dir = filepath.Join(root, viper.GetString("path"))
+	log.Printf("Starting process: %v", cmd.Args)
+	if err := cmd.Start(); err != nil {
+		panic(fmt.Errorf("failed to start process: %w", err))
 	}
-	err = cmd.Run()
-	if err != nil {
-		panic(err)
-	}
-	pw.Close()
 
+	go func() {
+		defer pw.Close()
+		if err := cmd.Wait(); err != nil {
+			panic(fmt.Errorf("process failed: %w", err))
+		}
+	}()
+
+	validation := bytes.Buffer{}
+	tee := io.TeeReader(pr, &validation)
 	pipeline := kio.Pipeline{
 		Inputs: []kio.Reader{
 			&kio.ByteReader{Reader: os.Stdin},
-			&kio.ByteReader{Reader: pr},
+			&kio.ByteReader{Reader: tee},
 		},
 		Filters: []kio.Filter{},
 		Outputs: []kio.Writer{kio.ByteWriter{Writer: os.Stdout}},
 	}
 	if err := pipeline.Execute(); err != nil {
-		panic(err)
+		if err := cmd.Wait(); err != nil {
+			log.Printf("process failed: %v", err)
+		}
+		panic(fmt.Errorf("the YAML pipeline failed (did \"helm\" output valid YAML?): %w\n===\n%s", err, validation.String()))
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/hexops/gotextdiff/span"
 	"gopkg.in/yaml.v3"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"sigs.k8s.io/kustomize/kyaml/kio"
@@ -23,7 +24,7 @@ func InvokePipelineForTest(t *testing.T, path string) {
 	}
 
 	stdout, _ := Capture(true, false, func() {
-		pipeline, err := internal.NewPipeline(absPath, kio.ByteWriter{Writer: os.Stdout})
+		pipeline, err := internal.NewPipeline(log.New(os.Stderr, "> ", 0), absPath, kio.ByteWriter{Writer: os.Stdout})
 		if err != nil {
 			t.Fatal(fmt.Errorf("failed to build pipeline from '%s': %w", path, err))
 		}
@@ -43,7 +44,7 @@ func InvokePipelineForTest(t *testing.T, path string) {
 			if err == io.EOF {
 				break
 			}
-			t.Fatal(fmt.Errorf("failed decoding YAML: %w", err))
+			t.Fatal(fmt.Errorf("failed decoding YAML: %w\n======\n%s\n========", err, stdout))
 		}
 		if err := encoder.Encode(data); err != nil {
 			t.Fatal(fmt.Errorf("failed encoding struct: %w", err))
