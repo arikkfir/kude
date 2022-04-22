@@ -9,12 +9,14 @@ import (
 	"github.com/arikkfir/kude/pkg"
 	"github.com/spf13/viper"
 	"io/ioutil"
+	"log"
 	"os"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 func main() {
+	log.Default().SetFlags(0)
 	pkg.Configure()
 
 	// Read configuration file
@@ -32,15 +34,15 @@ func main() {
 	}
 	allContent := bytes.Buffer{}
 	data := make(map[string]string)
-	for _, content := range secretDefs {
+	for i, content := range secretDefs {
 		if content.Key == "" {
-			panic(fmt.Errorf("key is required for all entries"))
+			panic(fmt.Errorf("key is required for all entries (missing for entry %d)", i))
 		}
 		if content.Value == "" && content.Path == "" {
-			panic(fmt.Errorf("value or path is required for all entries"))
+			panic(fmt.Errorf("value or path is required for all entries (missing for entry %d)", i))
 		}
 		if content.Value != "" && content.Path != "" {
-			panic(fmt.Errorf("value and path cannot be used together in a single entry"))
+			panic(fmt.Errorf("value and path cannot be used together in a single entry (encountered for entry %d)", i))
 		}
 		var value string
 		if content.Value != "" {
@@ -79,13 +81,13 @@ func main() {
 			if viper.IsSet("type") {
 				err := node.PipeE(yaml.SetField("type", yaml.NewScalarRNode(viper.GetString("type"))))
 				if err != nil {
-					return nil, fmt.Errorf("error generating secret: %w", err)
+					return nil, fmt.Errorf("error setting secret type: %w", err)
 				}
 			}
 			if viper.IsSet("namespace") {
 				err := node.PipeE(yaml.Tee(yaml.SetK8sNamespace(viper.GetString("namespace"))))
 				if err != nil {
-					return nil, fmt.Errorf("error generating secret: %w", err)
+					return nil, fmt.Errorf("error setting secret namespace: %w", err)
 				}
 			}
 			return []*yaml.RNode{node}, nil
@@ -93,6 +95,6 @@ func main() {
 		Outputs: []kio.Writer{kio.ByteWriter{Writer: os.Stdout}},
 	}
 	if err := pipeline.Execute(); err != nil {
-		panic(err)
+		panic(fmt.Errorf("pipeline invocation failed: %w", err))
 	}
 }

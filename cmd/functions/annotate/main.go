@@ -1,14 +1,17 @@
 package main
 
 import (
+	"fmt"
 	"github.com/arikkfir/kude/pkg"
 	"github.com/spf13/viper"
+	"log"
 	"os"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 func main() {
+	log.Default().SetFlags(0)
 	pkg.Configure()
 
 	var value string
@@ -16,7 +19,7 @@ func main() {
 	if valuePath != "" {
 		bytes, err := os.ReadFile("/workspace/" + valuePath)
 		if err != nil {
-			panic(err)
+			panic(fmt.Errorf("failed reading '%s': %w", valuePath, err))
 		}
 		value = string(bytes)
 	} else {
@@ -29,6 +32,6 @@ func main() {
 		Outputs: []kio.Writer{kio.ByteWriter{Writer: os.Stdout}},
 	}
 	if err := pipeline.Execute(); err != nil {
-		panic(err)
+		panic(fmt.Errorf("pipeline invocation failed: %w", err))
 	}
 }
