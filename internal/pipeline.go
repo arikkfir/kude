@@ -7,12 +7,13 @@ import (
 	"github.com/google/uuid"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
 	"strings"
+	"time"
 )
 
 const (
@@ -29,16 +30,17 @@ type Function interface {
 	Invoke(ctx context.Context, r io.Reader, w io.Writer) error
 }
 
-func NewPipeline(dir string, writer kio.Writer) (Pipeline, error) {
+func NewPipeline(logger *log.Logger, dir string, writer kio.Writer) (Pipeline, error) {
+	logger.Println("Building pipeline...")
 	kudeYamlPath := filepath.Join(dir, "kude.yaml")
 	manifestReader, err := os.Open(kudeYamlPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open kude.yaml at '%s': %w", kudeYamlPath, err)
 	}
-	return NewPipelineFromReader(dir, manifestReader, writer)
+	return NewPipelineFromReader(logger, dir, manifestReader, writer)
 }
 
-func NewPipelineFromReader(dir string, manifestReader io.Reader, writer kio.Writer) (Pipeline, error) {
+func NewPipelineFromReader(logger *log.Logger, dir string, manifestReader io.Reader, writer kio.Writer) (Pipeline, error) {
 	pwd, err := filepath.Abs(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get absolute path: %w", err)
@@ -75,8 +77,9 @@ func NewPipelineFromReader(dir string, manifestReader io.Reader, writer kio.Writ
 	inputs := make([]kio.Reader, 0)
 	for _, url := range resources {
 		inputs = append(inputs, &resourceReader{
-			pwd: pwd,
-			url: url.(string),
+			logger: logger,
+			pwd:    pwd,
+			url:    url.(string),
 		})
 	}
 
@@ -91,50 +94,52 @@ func NewPipelineFromReader(dir string, manifestReader io.Reader, writer kio.Writ
 	}
 	filters := make([]kio.Filter, 0)
 	for _, v := range functions {
+		f := dockerFunction{logger: logger, pwd: pwd}
 		funcConfig := v.(map[string]interface{})
-		name, ok := funcConfig["name"].(string)
-		if !ok {
-			name = uuid.New().String()
+		if name, ok := funcConfig["name"].(string); ok {
+			f.name = name
+		} else {
+			f.name = uuid.NewString()
 		}
 		image, ok := funcConfig["image"].(string)
 		if !ok {
-			return nil, fmt.Errorf("failed to get image for function '%s': %w", name, err)
+			return nil, fmt.Errorf("failed to get image for function '%s': %w", f.name, err)
 		} else if !strings.Contains(image, ":") {
 			image = image + ":" + strings.Join(pkg.GetVersion().Build, ".")
 		}
-		entrypoint, ok := funcConfig["entrypoint"].([]string)
-		if !ok {
-			entrypoint = nil
+		f.image = image
+		if entrypoint, ok := funcConfig["entrypoint"].([]string); ok {
+			f.entrypoint = entrypoint
 		}
-		user, ok := funcConfig["user"].(string)
-		if !ok {
-			user = ""
+		if user, ok := funcConfig["user"].(string); ok {
+			f.user = user
 		}
-		allowNetwork, ok := funcConfig["network"].(bool)
-		if !ok {
-			allowNetwork = false
+		if workDir, ok := funcConfig["workDir"].(string); ok {
+			f.workDir = workDir
 		}
-		config, ok := funcConfig["config"].(map[string]interface{})
-		if !ok {
-			config = map[string]interface{}{}
+		if allowNetwork, ok := funcConfig["network"].(bool); ok {
+			f.allowNetwork = allowNetwork
 		}
-		var mounts []string
-		if list, ok := funcConfig["mounts"].([]interface{}); ok {
-			for _, bind := range list {
+		if config, ok := funcConfig["config"].(map[string]interface{}); ok {
+			f.config = config
+		}
+		if timeoutStr, ok := funcConfig["timeout"].(string); ok {
+			timeout, err := time.ParseDuration(timeoutStr)
+			if err != nil {
+				return nil, fmt.Errorf("invalid timeout '%s' specified for function '%s': %w", timeoutStr, f.name, err)
+			}
+			f.timeout = timeout
+		} else {
+			f.timeout = 10 * time.Minute
+		}
+		if mountsList, ok := funcConfig["mounts"].([]interface{}); ok {
+			var mounts []string
+			for _, bind := range mountsList {
 				mounts = append(mounts, bind.(string))
 			}
+			f.mounts = mounts
 		}
-		filters = append(filters, &dockerFunction{
-			pwd:          pwd,
-			bindsRegexp:  regexp.MustCompile(`mount://([^:]+)(?::([^:]+))?`),
-			name:         name,
-			image:        image,
-			entrypoint:   entrypoint,
-			user:         user,
-			allowNetwork: allowNetwork,
-			config:       config,
-			mounts:       mounts,
-		})
+		filters = append(filters, &f)
 	}
 	filters = append(filters, &referencesResolverFunction{})
 

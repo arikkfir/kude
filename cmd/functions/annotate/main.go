@@ -17,11 +17,11 @@ func main() {
 	var value string
 	valuePath := viper.GetString("path")
 	if valuePath != "" {
-		bytes, err := os.ReadFile("/workspace/" + valuePath)
+		valueFileBytes, err := os.ReadFile("/workspace/" + valuePath)
 		if err != nil {
 			panic(fmt.Errorf("failed reading '%s': %w", valuePath, err))
 		}
-		value = string(bytes)
+		value = string(valueFileBytes)
 	} else {
 		value = viper.GetString("value")
 	}

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
 	"sigs.k8s.io/kustomize/kyaml/kio"
@@ -11,6 +12,7 @@ import (
 )
 
 type resourceAggregator struct {
+	logger    *log.Logger
 	resources []*kyaml.RNode
 }
 
@@ -80,7 +82,14 @@ func (r *resourceAggregator) walkSimpleDirectory(path string, e fs.DirEntry, err
 			return fmt.Errorf("expecting 'kude.yaml' to be a file, not a directory: %s", kudeYAMLFile)
 		} else {
 			var rns []*kyaml.RNode
-			pipeline, err := NewPipeline(path, kio.WriterFunc(func(_rns []*kyaml.RNode) error {
+			var prefix string
+			if r.logger.Prefix() == "" {
+				prefix = "---> "
+			} else {
+				prefix = "---" + r.logger.Prefix()
+			}
+			logger := log.New(r.logger.Writer(), prefix, r.logger.Flags())
+			pipeline, err := NewPipeline(logger, path, kio.WriterFunc(func(_rns []*kyaml.RNode) error {
 				rns = _rns
 				return nil
 			}))
