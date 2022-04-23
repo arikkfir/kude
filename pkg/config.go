@@ -12,6 +12,7 @@ const ConfigFileName = "config.yaml"
 const ConfigFile = ConfigFileDir + "/" + ConfigFileName
 
 func Configure() {
+	log.SetFlags(0)
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(ConfigFileDir)
 	viper.SetConfigName(strings.TrimSuffix(ConfigFileName, filepath.Ext(ConfigFileName)))

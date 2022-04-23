@@ -8,14 +8,12 @@ import (
 	"github.com/arikkfir/kude/pkg"
 	"github.com/spf13/viper"
 	"io/ioutil"
-	"log"
 	"os"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 func main() {
-	log.Default().SetFlags(0)
 	pkg.Configure()
 
 	type Entry struct {

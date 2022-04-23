@@ -4,14 +4,12 @@ import (
 	"fmt"
 	"github.com/arikkfir/kude/pkg"
 	"github.com/spf13/viper"
-	"log"
 	"os"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 func main() {
-	log.Default().SetFlags(0)
 	pkg.Configure()
 
 	var value string
