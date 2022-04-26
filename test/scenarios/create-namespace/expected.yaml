@@ -1,9 +1,4 @@
 apiVersion: apps/v1
-kind: Namespace
-metadata:
-  name: test
----
-apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: test
@@ -23,3 +18,8 @@ spec:
             - containerPort: 8080
               name: http
               protocol: TCP
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: test
