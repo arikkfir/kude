@@ -87,13 +87,10 @@ func extractHelm(arch, helmArchiveFile, helmFile string) error {
 }
 
 func main() {
-	log.Default().SetFlags(0)
-	viper.SetDefault("workspace", "/workspace/temp")
 	viper.SetDefault("arch", "linux-amd64")
 	viper.SetDefault("helm-version", "v3.8.1")
 	pkg.Configure()
 
-	root := viper.GetString("workspace")
 	arch := viper.GetString("arch")
 
 	helmVersion := viper.GetString("helm-version")
@@ -103,10 +100,10 @@ func main() {
 		helmVersion = helmVersion[1:]
 	}
 
-	helmFile := filepath.Join(root, "helm")
+	helmFile := "/workspace/temp/helm"
 	if _, err := os.Stat(helmFile); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			helmArchiveFile := filepath.Join(root, "helm-v"+helmVersion+"-"+arch+".tar.gz")
+			helmArchiveFile := filepath.Join("/workspace/temp", "helm-v"+helmVersion+"-"+arch+".tar.gz")
 			if _, err := os.Stat(helmArchiveFile); err != nil {
 				if errors.Is(err, os.ErrNotExist) {
 					err := downloadHelmArchive(helmArchiveFile)

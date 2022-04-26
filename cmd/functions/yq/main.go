@@ -14,7 +14,6 @@ import (
 )
 
 func main() {
-	log.Default().SetFlags(0)
 	pkg.Configure()
 
 	expr := viper.GetString("expr")

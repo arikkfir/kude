@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	log.Default().SetFlags(0)
+	log.SetFlags(0)
 }
 
 func main() {

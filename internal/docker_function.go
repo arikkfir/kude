@@ -50,7 +50,14 @@ type dockerFunction struct {
 
 func (f *dockerFunction) Filter(rns []*kyaml.RNode) ([]*kyaml.RNode, error) {
 	f.logger.Printf("Invoking function '%s' (%s)", f.image, f.name)
-	logger := log.New(f.logger.Writer(), f.logger.Prefix()+"--> ", f.logger.Flags())
+
+	prefix := f.logger.Prefix()
+	if prefix != "" {
+		prefix = "---" + prefix
+	} else {
+		prefix = "---> "
+	}
+	logger := log.New(f.logger.Writer(), prefix, f.logger.Flags())
 	ctx, cancel := context.WithTimeout(context.Background(), f.timeout)
 	defer cancel()
 	dockerClient, err := client.NewClientWithOpts(client.FromEnv)
