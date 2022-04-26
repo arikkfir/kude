@@ -31,7 +31,7 @@ type Function interface {
 }
 
 func NewPipeline(logger *log.Logger, dir string, writer kio.Writer) (Pipeline, error) {
-	logger.Println("Building pipeline...")
+	logger.Println("Building pipeline at '%s'", dir)
 	kudeYamlPath := filepath.Join(dir, "kude.yaml")
 	manifestReader, err := os.Open(kudeYamlPath)
 	if err != nil {
