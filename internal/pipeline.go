@@ -94,7 +94,15 @@ func NewPipelineFromReader(logger *log.Logger, dir string, manifestReader io.Rea
 	}
 	filters := make([]kio.Filter, 0)
 	for _, v := range functions {
-		f := dockerFunction{logger: logger, pwd: pwd}
+		prefix := logger.Prefix()
+		if prefix != "" {
+			prefix = "---" + prefix
+		} else {
+			prefix = "---> "
+		}
+		funcLogger := log.New(logger.Writer(), prefix, logger.Flags())
+
+		f := dockerFunction{logger: funcLogger, pwd: pwd}
 		funcConfig := v.(map[string]interface{})
 		if name, ok := funcConfig["name"].(string); ok {
 			f.name = name

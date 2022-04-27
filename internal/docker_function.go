@@ -58,6 +58,7 @@ func (f *dockerFunction) Filter(rns []*kyaml.RNode) ([]*kyaml.RNode, error) {
 		prefix = "---> "
 	}
 	logger := log.New(f.logger.Writer(), prefix, f.logger.Flags())
+
 	ctx, cancel := context.WithTimeout(context.Background(), f.timeout)
 	defer cancel()
 	dockerClient, err := client.NewClientWithOpts(client.FromEnv)
