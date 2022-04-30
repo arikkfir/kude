@@ -1,0 +1,19 @@
+apiVersion: kude.kfirs.com/v1alpha1
+kind: Pipeline
+resources:
+  - resources.yaml
+pipeline:
+  - image: ghcr.io/arikkfir/kude/functions/annotate
+    config:
+      name: fromFile
+      path: value.txt
+    mounts:
+      - value.txt
+  - image: ghcr.io/arikkfir/kude/functions/annotate
+    config:
+      name: numeric
+      value: "123"
+  - image: ghcr.io/arikkfir/kude/functions/annotate
+    config:
+      name: string
+      value: "abc"
