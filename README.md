@@ -168,10 +168,10 @@ spec:
 The following functions are available:
 
 - [annotate](./cmd/functions/annotate/README.md) - Annotate Kubernetes resources with metadata
-- [configmap](./cmd/functions/configmap/README.md) - Generate a Kubernetes ConfigMap
+- [configmap](cmd/functions/create-configmap/README.md) - Generate a Kubernetes ConfigMap
 - [helm](./cmd/functions/helm/README.md) - Render a Helm chart
 - [label](./cmd/functions/label/README.md) - Label Kubernetes resources
-- [secret](./cmd/functions/secret/README.md) - Generate a Kubernetes Secret
+- [secret](cmd/functions/create-secret/README.md) - Generate a Kubernetes Secret
 - [yq](./cmd/functions/yq/README.md) - Patch resources using `yq`
 
 ## Writing Kude Functions

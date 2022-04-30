@@ -1,10 +1,7 @@
-########################################################################################################################
-# NOTES:
-#   1. This Dockerfile is meant to be run in the root directory of this repository
-########################################################################################################################
+# syntax=docker/dockerfile:1
 
 ### Build executable
-FROM golang:1.17 as builder
+FROM golang:1.18 as builder
 WORKDIR /workspace
 
 # Download "yq"
@@ -13,7 +10,7 @@ RUN curl -sSL -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/down
 # Copy the Go manifests, download dependencies & cache them before building and copying actual source code, so when
 # source code changes, downloaded dependencies stay cached and are not downloaded again (unless manifest changes too.)
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/root/.cache/go-build go mod download
 
 # Now build the actual executable
 ARG function
@@ -23,7 +20,7 @@ ENV CGO_ENABLED="0"
 ENV GOARCH="amd64"
 ENV GOOS="linux"
 ENV GO111MODULE="on"
-RUN go build -o function ./cmd/functions/${function}/main.go
+RUN --mount=type=cache,target=/root/.cache/go-build go build -o function ./cmd/functions/${function}/main.go
 
 ### Target layer
 FROM gcr.io/distroless/base:latest

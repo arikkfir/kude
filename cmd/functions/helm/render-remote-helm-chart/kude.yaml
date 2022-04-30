@@ -1,0 +1,20 @@
+apiVersion: kude.kfirs.com/v1alpha1
+kind: Pipeline
+resources:
+  - resources.yaml
+pipeline:
+  - image: ghcr.io/arikkfir/kude/functions/helm
+    network: true
+    config:
+      helm-version: 3.8.1
+      args:
+        - template
+        - helm-remote-chart
+        - podinfo
+        - --create-namespace
+        - --description=Test Helm Remote Chart
+        - --include-crds
+        - --namespace=test
+        - --repo=https://stefanprodan.github.io/podinfo
+        - --skip-tests
+        - --version=6.1.0
