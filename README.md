@@ -32,7 +32,7 @@ function is a Docker image! This allows anyone to write Kude functions using any
   - Supports:
     - Local files
     - Git repositories
-    - Remote URLs
+    - Remote directory/file URLs
     - Other Kude packages (local & remote)
     - [More](https://github.com/hashicorp/go-getter)!
 - Name hashes for `ConfigMap` and `Secret` resources
@@ -75,7 +75,7 @@ resources:
   - service.yaml
 pipeline:
   # Define just one function to process resources:
-  - image: ghcr.io/arikkfir/kude/functions/annotate:latest
+  - image: ghcr.io/arikkfir/kude/functions/annotate
     config:
       name: purpose
       value: kude-example
@@ -118,10 +118,9 @@ spec:
     app.kubernetes.io/name: test
 ```
 
-Run `kude`:
-
+Run `kude` to generate the following resources:
 ```shell
-/home/test/my-kude-package: $ kude
+/home/test/my-kude-package: $ kude build
 ```
 
 Expect the following output (notice the annotations for each resource):
@@ -168,10 +167,12 @@ spec:
 The following functions are available:
 
 - [annotate](./cmd/functions/annotate/README.md) - Annotate Kubernetes resources with metadata
-- [configmap](cmd/functions/create-configmap/README.md) - Generate a Kubernetes ConfigMap
-- [helm](./cmd/functions/helm/README.md) - Render a Helm chart
+- [create-configmap](cmd/functions/create-configmap/README.md) - Generate a Kubernetes ConfigMap
+- [create-namespace](cmd/functions/create-namespace/README.md) - Generate a Kubernetes namespace
+- [create-secret](cmd/functions/create-secret/README.md) - Generate a Kubernetes Secret
+- [helm](./cmd/functions/helm/README.md) - Invoke Helm for any purpose (mainly used for `helm template ...` command)
 - [label](./cmd/functions/label/README.md) - Label Kubernetes resources
-- [secret](cmd/functions/create-secret/README.md) - Generate a Kubernetes Secret
+- [set-namespace](./cmd/functions/set-namespace/README.md) - Set namespace for resources.
 - [yq](./cmd/functions/yq/README.md) - Patch resources using `yq`
 
 ## Writing Kude Functions
