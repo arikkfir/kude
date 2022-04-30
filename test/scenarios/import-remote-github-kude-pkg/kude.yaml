@@ -1,7 +1,7 @@
 apiVersion: kude.kfirs.com/v1alpha1
 kind: Pipeline
 resources:
-  - github.com/arikkfir/kude//test/scenarios/ref/kude-single-deployment-pkg?ref=testing-refactor
+  - github.com/arikkfir/kude//test/scenarios/ref/kude-single-deployment-pkg?ref=main
   - service.yaml
 pipeline:
   - image: ghcr.io/arikkfir/kude/functions/annotate
