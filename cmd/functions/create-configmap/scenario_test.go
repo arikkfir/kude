@@ -41,6 +41,10 @@ func TestCreateConfigmap(t *testing.T) {
 		t.Fatal(fmt.Errorf(failureMessage, "failed to execute pipeline", err, stderr, stdout))
 	}
 	defer os.RemoveAll(filepath.Join(pwd, ".kude"))
+	t.Logf(`Pipeline stderr output:
+======
+%s
+======`, stderr.String())
 
 	formattedYAML, err := test.FormatYAML(stdout)
 	if err != nil {
