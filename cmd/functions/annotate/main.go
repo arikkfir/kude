@@ -12,9 +12,13 @@ import (
 func main() {
 	pkg.Configure()
 
+	annotationName := viper.GetString("name")
+	if annotationName == "" {
+		panic(fmt.Errorf("annotation name is required"))
+	}
+
 	var value string
-	valuePath := viper.GetString("path")
-	if valuePath != "" {
+	if valuePath := viper.GetString("path"); valuePath != "" {
 		valueFileBytes, err := os.ReadFile("/workspace/" + valuePath)
 		if err != nil {
 			panic(fmt.Errorf("failed reading '%s': %w", valuePath, err))
@@ -24,9 +28,18 @@ func main() {
 		value = viper.GetString("value")
 	}
 
+	labelSelector := viper.GetString("label-selector")
+
 	pipeline := kio.Pipeline{
-		Inputs:  []kio.Reader{&kio.ByteReader{Reader: os.Stdin}},
-		Filters: []kio.Filter{pkg.Fanout(yaml.SetAnnotation(viper.GetString("name"), value))},
+		Inputs: []kio.Reader{&kio.ByteReader{Reader: os.Stdin}},
+		Filters: []kio.Filter{
+			pkg.Fanout(
+				yaml.Tee(
+					pkg.SingleResourceLabelSelector(labelSelector),
+					yaml.SetAnnotation(annotationName, value),
+				),
+			),
+		},
 		Outputs: []kio.Writer{kio.ByteWriter{Writer: os.Stdout}},
 	}
 	if err := pipeline.Execute(); err != nil {

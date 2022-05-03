@@ -1,4 +1,11 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: annotated
+  name: svc1
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    labeled: "yes"
+  name: svc2
