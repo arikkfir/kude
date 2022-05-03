@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	kyaml "sigs.k8s.io/kustomize/kyaml/yaml"
+	"sort"
 	"strings"
 	"time"
 )
@@ -149,7 +150,18 @@ func NewPipelineFromReader(logger *log.Logger, dir string, manifestReader io.Rea
 		}
 		filters = append(filters, &f)
 	}
-	filters = append(filters, &referencesResolverFunction{})
+	filters = append(
+		filters,
+
+		// Resolve references between resources
+		&referencesResolverFunction{},
+
+		// Sort resources based on type (e.g. namespaces first)
+		kio.FilterFunc(func(rns []*kyaml.RNode) ([]*kyaml.RNode, error) {
+			sort.Sort(ByType(rns))
+			return rns, nil
+		}),
+	)
 
 	// Compose the pipeline
 	pipeline := kio.Pipeline{
