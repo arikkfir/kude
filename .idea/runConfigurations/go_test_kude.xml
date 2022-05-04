@@ -1,13 +1,11 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="go test kude" type="GoTestRunConfiguration" factoryName="Go Test" nameIsGenerated="true">
+  <configuration default="false" name="go test kude" type="GoTestRunConfiguration" factoryName="Go Test">
     <module name="kude" />
     <working_directory value="$PROJECT_DIR$" />
     <kind value="DIRECTORY" />
     <directory value="$PROJECT_DIR$" />
     <filePath value="$PROJECT_DIR$" />
     <framework value="gotest" />
-    <method v="2">
-      <option name="RunConfigurationTask" enabled="true" run_configuration_name="Build function Docker images" run_configuration_type="ShConfigurationType" />
-    </method>
+    <method v="2" />
   </configuration>
 </component>

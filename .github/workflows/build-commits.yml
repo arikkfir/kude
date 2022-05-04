@@ -100,4 +100,10 @@ jobs:
             golang-${{ runner.os }}-
       - run: go mod download
       - run: go vet ./...
-      - run: go test -ldflags "-X 'github.com/arikkfir/kude/pkg.gitCommit=${{ github.sha }}'" ./...
+      - run: |
+          go test -ldflags "-X 'github.com/arikkfir/kude/pkg.gitCommit=${{ github.sha }}'" \
+                  -race \
+                  -coverprofile=coverage.out \
+                  -covermode=atomic \
+                  ./...
+      - uses: codecov/codecov-action@v3
