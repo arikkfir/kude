@@ -19,6 +19,8 @@ pipeline:
       value: "abc"
   - image: ghcr.io/arikkfir/kude/functions/annotate
     config:
-      label-selector: labeled=yes
       name: special
       value: "yes"
+      targets:
+        includes:
+          - labelSelector: labeled=yes

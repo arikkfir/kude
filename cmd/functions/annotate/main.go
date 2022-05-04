@@ -28,14 +28,21 @@ func main() {
 		value = viper.GetString("value")
 	}
 
-	labelSelector := viper.GetString("label-selector")
+	includes := make([]pkg.TargetingFilter, 0)
+	if err := viper.UnmarshalKey("targets.includes", &includes); err != nil {
+		panic(fmt.Errorf("failed to unmarshal targeting includes: %w", err))
+	}
+	excludes := make([]pkg.TargetingFilter, 0)
+	if err := viper.UnmarshalKey("targets.excludes", &excludes); err != nil {
+		panic(fmt.Errorf("failed to unmarshal targeting excludes: %w", err))
+	}
 
 	pipeline := kio.Pipeline{
 		Inputs: []kio.Reader{&kio.ByteReader{Reader: os.Stdin}},
 		Filters: []kio.Filter{
 			pkg.Fanout(
 				yaml.Tee(
-					pkg.SingleResourceLabelSelector(labelSelector),
+					pkg.SingleResourceTargeting(includes, excludes),
 					yaml.SetAnnotation(annotationName, value),
 				),
 			),
