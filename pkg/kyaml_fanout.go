@@ -5,11 +5,11 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
-type pipelineFanout struct {
+type fanout struct {
 	processor yaml.Filter
 }
 
-func (s pipelineFanout) Filter(resources []*yaml.RNode) ([]*yaml.RNode, error) {
+func (s fanout) Filter(resources []*yaml.RNode) ([]*yaml.RNode, error) {
 	for i := range resources {
 		resource := resources[i]
 		_, err := resource.Pipe(s.processor)
@@ -20,6 +20,9 @@ func (s pipelineFanout) Filter(resources []*yaml.RNode) ([]*yaml.RNode, error) {
 	return resources, nil
 }
 
+// Fanout adapters a single-resource filter to a kio.Filter interface which is suitable for a pipeline.
+//
+// TODO: replace with "kio.FilterAll" function
 func Fanout(processor yaml.Filter) kio.Filter {
-	return pipelineFanout{processor: processor}
+	return fanout{processor: processor}
 }

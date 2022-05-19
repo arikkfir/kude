@@ -1,0 +1,106 @@
+apiVersion: kude.kfirs.com/v1alpha1
+kind: Scenario
+package:
+  apiVersion: kude.kfirs.com/v1alpha1
+  kind: Package
+  resources:
+    - service-accounts.yaml
+    - deployment.yaml
+  pipeline:
+    - image: ghcr.io/arikkfir/kude/functions/annotate
+      config:
+        includes:
+          - apiVersion: v1
+        name: apiVersion_v1
+        value: "yes"
+    - image: ghcr.io/arikkfir/kude/functions/annotate
+      config:
+        includes:
+          - kind: ServiceAccount
+        name: kind_ServiceAccount
+        value: "yes"
+    - image: ghcr.io/arikkfir/kude/functions/annotate
+      config:
+        includes:
+          - apiVersion: apps/v1
+            kind: Deployment
+        name: apiVersionAndkind_apps_v1_Deployment
+        value: "yes"
+    - image: ghcr.io/arikkfir/kude/functions/annotate
+      config:
+        includes:
+          - apiVersion: apps/v1
+            kind: UnknownKind
+        name: apiVersionAndkind_apps_v1_UnknownKind
+        value: "yes"
+    - image: ghcr.io/arikkfir/kude/functions/annotate
+      config:
+        includes:
+          - name: svc1
+        name: name_svc1
+        value: "yes"
+
+resources:
+  service-accounts.yaml: |+
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: svc1
+      namespace: ns1
+    ---
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      labels:
+        labeled: "yes"
+      name: svc2
+      namespace: ns2
+
+  deployment.yaml: |+
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: d1
+      namespace: ns3
+    spec:
+      template:
+        spec:
+          containers:
+            - image: nginx
+              name: nginx
+
+expected: |+
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    annotations:
+      apiVersion_v1: "yes"
+      kind_ServiceAccount: "yes"
+      name_svc1: "yes"
+    name: svc1
+    namespace: ns1
+  ---
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    annotations:
+      apiVersion_v1: "yes"
+      kind_ServiceAccount: "yes"
+    labels:
+      labeled: "yes"
+    name: svc2
+    namespace: ns2
+  ---
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      apiVersionAndkind_apps_v1_Deployment: "yes"
+    name: d1
+    namespace: ns3
+  spec:
+    template:
+      spec:
+        containers:
+          - image: nginx
+            name: nginx

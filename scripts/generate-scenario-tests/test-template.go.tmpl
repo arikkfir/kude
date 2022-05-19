@@ -1,0 +1,32 @@
+package {{ .PackageName }}
+
+import (
+	_ "embed"
+	{{ if ne .ScenarioDirname "internal/" }}"github.com/arikkfir/kude/internal"{{ end }}
+	{{ if ne .ScenarioDirname "pkg/" }}"github.com/arikkfir/kude/pkg"{{ end }}
+	"github.com/arikkfir/kude/test"
+	"io"
+	"log"
+	"testing"
+)
+
+//go:embed {{ .ScenarioBasename }}
+var scenario{{ .ScenarioCamelCased }}YAML string
+
+func Test{{ .ScenarioCamelCased }}Docker(t *testing.T) {
+    factory := func(logger *log.Logger, pwd string, manifestReader io.Reader, output io.Writer) ({{ if ne .ScenarioDirname "pkg/" }}pkg.{{ end }}Package, error) {
+        return {{ if ne .ScenarioDirname "internal/" }}internal.{{ end }}NewPackage(logger, pwd, manifestReader, output, false)
+    }
+    if err := test.RunScenario(t, "{{ .ScenarioName }}", scenario{{ .ScenarioCamelCased }}YAML, factory); err != nil {
+        t.Fatalf("Scenario failed: %v", err)
+    }
+}
+
+func Test{{ .ScenarioCamelCased }}Internal(t *testing.T) {
+    factory := func(logger *log.Logger, pwd string, manifestReader io.Reader, output io.Writer) ({{ if ne .ScenarioDirname "pkg/" }}pkg.{{ end }}Package, error) {
+        return {{ if ne .ScenarioDirname "internal/" }}internal.{{ end }}NewPackage(logger, pwd, manifestReader, output, true)
+    }
+    if err := test.RunScenario(t, "{{ .ScenarioName }}", scenario{{ .ScenarioCamelCased }}YAML, factory); err != nil {
+        t.Fatalf("Scenario failed: %v", err)
+    }
+}

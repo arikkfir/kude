@@ -1,0 +1,62 @@
+apiVersion: kude.kfirs.com/v1alpha1
+kind: Scenario
+go:
+  package: main
+package:
+  apiVersion: kude.kfirs.com/v1alpha1
+  kind: Package
+  resources:
+    - resources.yaml
+  pipeline:
+    - image: ghcr.io/arikkfir/kude/functions/set-namespace
+      config:
+        namespace: test
+
+resources:
+  resources.yaml: |-
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: t1
+    ---
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: test
+    spec:
+      selector:
+        matchLabels:
+          app.kubernetes.io/component: test
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/component: test
+        spec:
+          containers:
+            - image: test/test
+              name: server
+
+expected: |-
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: t1
+    namespace: test
+  ---
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: test
+    namespace: test
+  spec:
+    selector:
+      matchLabels:
+        app.kubernetes.io/component: test
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/component: test
+      spec:
+        containers:
+          - image: test/test
+            name: server
