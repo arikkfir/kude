@@ -1,4 +1,0 @@
-apiVersion: kude.kfirs.com/v1alpha1
-kind: Pipeline
-resources:
-  - git::https://github.com/stefanprodan/podinfo//kustomize?ref=6.1.3

@@ -1,6 +1,0 @@
-apiVersion: kude.kfirs.com/v1alpha1
-kind: Pipeline
-resources:
-  - git::https://github.com/stefanprodan/podinfo//kustomize/deployment.yaml?ref=6.1.3
-  - git::https://github.com/stefanprodan/podinfo//kustomize/service.yaml?ref=6.1.3
-  - git::https://github.com/stefanprodan/podinfo//kustomize/hpa.yaml?ref=6.1.3

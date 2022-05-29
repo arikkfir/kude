@@ -1,6 +1,6 @@
 module github.com/arikkfir/kude
 
-go 1.17
+go 1.18
 
 replace github.com/hashicorp/go-getter/v2 v2.0.2 => github.com/arikkfir/go-getter/v2 v2.0.3-0.20220414203320-e7578c2df2b7
 

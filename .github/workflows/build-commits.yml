@@ -99,11 +99,15 @@ jobs:
             golang-${{ runner.os }}-${{ hashFiles('**/go.sum') }}-
             golang-${{ runner.os }}-
       - run: go mod download
-      - run: go vet ./...
       - run: |
-          go test -ldflags "-X 'github.com/arikkfir/kude/pkg.gitCommit=${{ github.sha }}'" \
+          go test -ldflags "-X 'github.com/arikkfir/kude/pkg.gitCommit=${GITHUB_SHA}'" \
+                  -v \
                   -race \
+                  -shuffle ${SHUFFLE_SEED} \
                   -coverprofile=coverage.out \
                   -covermode=atomic \
                   ./...
+        env:
+          SHUFFLE_SEED: ${{ github.run_number }}
       - uses: codecov/codecov-action@v3
+        if: always()

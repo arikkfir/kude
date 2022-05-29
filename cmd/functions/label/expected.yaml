@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  labels:
-    fromFile: stored in a file
-    numeric: "123"
-    string: abc
-  name: labeled

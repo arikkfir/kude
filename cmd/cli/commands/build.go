@@ -4,11 +4,10 @@ import (
 	_ "embed"
 	"fmt"
 	"github.com/arikkfir/kude/internal"
+	"github.com/spf13/cobra"
 	"log"
 	"os"
-	"sigs.k8s.io/kustomize/kyaml/kio"
-
-	"github.com/spf13/cobra"
+	"path/filepath"
 )
 
 //go:embed build-long.txt
@@ -26,13 +25,16 @@ var buildCmd = &cobra.Command{
 			return fmt.Errorf("failed to get current working directory: %w", err)
 		}
 
-		pipeline, err := internal.NewPipeline(log.Default(), pwd, kio.ByteWriter{Writer: os.Stdout})
+		manifestPath := filepath.Join(pwd, "kude.yaml")
+		manifestReader, err := os.Open(manifestPath)
 		if err != nil {
-			return fmt.Errorf("failed to build pipeline: %w", err)
+			return fmt.Errorf("failed to open package manifest at '%s': %w", manifestPath, err)
 		}
 
-		if err := pipeline.Execute(); err != nil {
-			return fmt.Errorf("failed to execute pipeline: %w", err)
+		if p, err := internal.NewPackage(log.Default(), pwd, manifestReader, os.Stdout, false); err != nil {
+			return fmt.Errorf("failed to build package: %w", err)
+		} else if err := p.Execute(); err != nil {
+			return fmt.Errorf("failed to execute package: %w", err)
 		}
 
 		return nil

@@ -1,8 +1,0 @@
-apiVersion: kude.kfirs.com/v1alpha1
-kind: Pipeline
-resources:
-  - resources.yaml
-pipeline:
-  - image: ghcr.io/arikkfir/kude/functions/create-namespace
-    config:
-      name: test

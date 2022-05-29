@@ -14,8 +14,9 @@ RUN --mount=type=cache,target=/root/.cache/go-build go mod download
 
 # Now build the actual executable
 ARG function
-COPY cmd/functions/${function} ./cmd/functions/${function}
+COPY cmd/functions/${function}/main.go ./cmd/functions/${function}/main.go
 COPY pkg ./pkg
+COPY internal/builtin_*.go ./internal/
 ENV CGO_ENABLED="0"
 ENV GOARCH="amd64"
 ENV GOOS="linux"
@@ -23,7 +24,7 @@ ENV GO111MODULE="on"
 RUN --mount=type=cache,target=/root/.cache/go-build go build -o function ./cmd/functions/${function}/main.go
 
 ### Target layer
-FROM gcr.io/distroless/base:latest
+FROM gcr.io/distroless/base-debian11:debug
 WORKDIR /
 COPY --from=builder /workspace/function ./function
 COPY --from=builder /usr/local/bin/yq /usr/local/bin/yq
