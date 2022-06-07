@@ -1,32 +1,41 @@
 package internal
 
 import (
+	"bytes"
 	_ "embed"
 	
-	"github.com/arikkfir/kude/pkg"
-	"github.com/arikkfir/kude/test"
-	"io"
+	"github.com/arikkfir/kude/test/scenario"
+	"github.com/arikkfir/kude/test/util"
 	"log"
+	"os"
+	"strings"
 	"testing"
 )
 
 //go:embed scenario-empty-pipeline.yaml
-var scenarioEmptyPipelineYAML string
+var EmptyPipelineYAML string
 
-func TestEmptyPipelineDocker(t *testing.T) {
-    factory := func(logger *log.Logger, pwd string, manifestReader io.Reader, output io.Writer) (pkg.Package, error) {
-        return NewPackage(logger, pwd, manifestReader, output, false)
-    }
-    if err := test.RunScenario(t, "empty-pipeline", scenarioEmptyPipelineYAML, factory); err != nil {
-        t.Fatalf("Scenario failed: %v", err)
-    }
-}
+func TestEmptyPipeline(t *testing.T) {
+	s, err := scenario.OpenScenario("TestEmptyPipeline", strings.NewReader(EmptyPipelineYAML))
+	if err != nil {
+		t.Fatalf("Failed to open scenario: %s", err)
+	}
 
-func TestEmptyPipelineInternal(t *testing.T) {
-    factory := func(logger *log.Logger, pwd string, manifestReader io.Reader, output io.Writer) (pkg.Package, error) {
-        return NewPackage(logger, pwd, manifestReader, output, true)
+    test := func(t *testing.T, inlineBuiltinFunctions bool) {
+        stdout := bytes.Buffer{}
+        logger := log.New(&util.TestWriter{T: t}, "", 0)
+        if r, err := os.Open(s.ManifestPath); err != nil {
+            s.VerifyError(t, err)
+        } else if p, err := NewPackage(logger, s.Dir, r, &stdout, inlineBuiltinFunctions); err != nil {
+            s.VerifyError(t, err)
+        } else if err := p.Execute(); err != nil {
+            s.VerifyError(t, err)
+        } else {
+            s.VerifyError(t, err)
+            s.VerifyStdout(t, &stdout)
+        }
     }
-    if err := test.RunScenario(t, "empty-pipeline", scenarioEmptyPipelineYAML, factory); err != nil {
-        t.Fatalf("Scenario failed: %v", err)
-    }
+
+	t.Run("CLI", func(t *testing.T) { test(t, false) })
+	t.Run("Inline", func(t *testing.T) { test(t, true) })
 }

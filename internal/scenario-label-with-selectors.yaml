@@ -1,0 +1,166 @@
+apiVersion: kude.kfirs.com/v1alpha1
+kind: Scenario
+package:
+  apiVersion: kude.kfirs.com/v1alpha1
+  kind: Package
+  resources:
+    - service-accounts.yaml
+    - deployments.yaml
+  pipeline:
+    - image: ghcr.io/arikkfir/kude/functions/label
+      config:
+        name: apiVersion_v1
+        value: "yes"
+        includes:
+          - apiVersion: v1
+    - image: ghcr.io/arikkfir/kude/functions/label
+      config:
+        name: kind_ServiceAccount
+        value: "yes"
+        includes:
+          - kind: ServiceAccount
+    - image: ghcr.io/arikkfir/kude/functions/label
+      config:
+        name: apiVersionAndkind_apps_v1_Deployment
+        value: "yes"
+        includes:
+          - apiVersion: apps/v1
+            kind: Deployment
+    - image: ghcr.io/arikkfir/kude/functions/label
+      config:
+        name: apiVersionAndkind_apps_v1_UnknownKind
+        value: "yes"
+        includes:
+          - apiVersion: apps/v1
+            kind: UnknownKind
+    - image: ghcr.io/arikkfir/kude/functions/label
+      config:
+        name: name_t1
+        value: "yes"
+        includes:
+          - name: t1
+    - image: ghcr.io/arikkfir/kude/functions/label
+      config:
+        name: namespace_ns1
+        value: "yes"
+        includes:
+          - namespace: ns1
+
+resources:
+  service-accounts.yaml: |-
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: t1
+      namespace: ns1
+    ---
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: t1
+      namespace: ns2
+  deployments.yaml: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        labeled: yes
+      name: t2
+      namespace: ns1
+    spec:
+      selector:
+        matchLabels:
+          labeled: yes
+      template:
+        metadata:
+          labels:
+            labeled: yes
+        spec:
+          containers:
+            - image: nginx
+              name: nginx
+    ---
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      labels:
+        labeled: yes
+      name: t2
+      namespace: ns2
+    spec:
+      selector:
+        matchLabels:
+          labeled: yes
+      template:
+        metadata:
+          labels:
+            labeled: yes
+        spec:
+          containers:
+            - image: nginx
+              name: nginx
+
+expected: |-
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    labels:
+      apiVersion_v1: "yes"
+      kind_ServiceAccount: "yes"
+      name_t1: "yes"
+      namespace_ns1: "yes"
+    name: t1
+    namespace: ns1
+  ---
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    labels:
+      apiVersion_v1: "yes"
+      kind_ServiceAccount: "yes"
+      name_t1: "yes"
+    name: t1
+    namespace: ns2
+  ---
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      apiVersionAndkind_apps_v1_Deployment: "yes"
+      labeled: "yes"
+      namespace_ns1: "yes"
+    name: t2
+    namespace: ns1
+  spec:
+    selector:
+      matchLabels:
+        labeled: "yes"
+    template:
+      metadata:
+        labels:
+          labeled: "yes"
+      spec:
+        containers:
+          - image: nginx
+            name: nginx
+  ---
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      apiVersionAndkind_apps_v1_Deployment: "yes"
+      labeled: "yes"
+    name: t2
+    namespace: ns2
+  spec:
+    selector:
+      matchLabels:
+        labeled: "yes"
+    template:
+      metadata:
+        labels:
+          labeled: "yes"
+      spec:
+        containers:
+          - image: nginx
+            name: nginx

@@ -12,11 +12,11 @@ import (
 	"testing"
 )
 
-//go:embed scenario-import-external-file.yaml
-var ImportExternalFileYAML string
+//go:embed scenario-create-configmap-immutability.yaml
+var CreateConfigmapImmutabilityYAML string
 
-func TestImportExternalFile(t *testing.T) {
-	s, err := scenario.OpenScenario("TestImportExternalFile", strings.NewReader(ImportExternalFileYAML))
+func TestCreateConfigmapImmutability(t *testing.T) {
+	s, err := scenario.OpenScenario("TestCreateConfigmapImmutability", strings.NewReader(CreateConfigmapImmutabilityYAML))
 	if err != nil {
 		t.Fatalf("Failed to open scenario: %s", err)
 	}

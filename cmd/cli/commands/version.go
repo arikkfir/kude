@@ -9,13 +9,24 @@ import (
 
 //go:embed version-long.txt
 var versionLongDescription string
+
+type versioner struct {
+	logger *log.Logger
+}
+
+func (v *versioner) Invoke() error {
+	v.logger.Println(pkg.GetVersion().String())
+	return nil
+}
+
 var versionCmd = &cobra.Command{
 	Use:               "version",
 	DisableAutoGenTag: true,
 	Short:             "Print version information",
 	Long:              versionLongDescription,
-	Run: func(cmd *cobra.Command, args []string) {
-		log.Println(pkg.GetVersion().String())
+	RunE: func(cmd *cobra.Command, args []string) error {
+		v := versioner{logger: log.Default()}
+		return v.Invoke()
 	},
 }
 
