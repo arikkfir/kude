@@ -4,6 +4,7 @@
 ![GoVersion](https://img.shields.io/github/go-mod/go-version/arikkfir/kude.svg)
 [![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://godoc.org/github.com/arikkfir/kude)
 [![GoReportCard](https://goreportcard.com/badge/github.com/arikkfir/kude)](https://goreportcard.com/report/github.com/arikkfir/kude)
+[![codecov](https://codecov.io/gh/arikkfir/kude/branch/main/graph/badge.svg?token=QP3OAILB25)](https://codecov.io/gh/arikkfir/kude)
 
 Kude (**Ku**bernetes **De**ployment) is a tool for deploying Kubernetes applications. It stands on the shoulders of
 giants such as [kustomize](https://kustomize.io/), [kpt](https://kpt.dev/) and [helm](https://helm.sh/), but unifies
