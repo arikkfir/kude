@@ -32,20 +32,20 @@ var internalFunctionsMapping = map[string]func() pkg.Function{
 	"ghcr.io/arikkfir/kude/functions/yq":               func() pkg.Function { return &YQ{} },
 }
 
-func NewPackage(logger *log.Logger, dir string, r io.Reader, writer io.Writer, useInternalFunctions bool) (pkg.Package, error) {
+func NewPackage(logger *log.Logger, dir string, r io.Reader, writer io.Writer, inlineBuiltinFunctions bool) (pkg.Package, error) {
 	pwd, err := filepath.Abs(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get absolute path: %w", err)
 	}
-	return &packageImpl{logger, pwd, r, writer, useInternalFunctions}, nil
+	return &packageImpl{logger, pwd, r, writer, inlineBuiltinFunctions}, nil
 }
 
 type packageImpl struct {
-	logger               *log.Logger
-	pwd                  string
-	manifestReader       io.Reader
-	writer               io.Writer
-	useInternalFunctions bool
+	logger                 *log.Logger
+	pwd                    string
+	manifestReader         io.Reader
+	writer                 io.Writer
+	inlineBuiltinFunctions bool
 }
 
 func (p *packageImpl) parseManifest() (*kyaml.RNode, error) {
@@ -77,7 +77,7 @@ func (p *packageImpl) buildPipelineInputs(manifest *kyaml.RNode) ([]kio.Reader, 
 	inputs := make([]kio.Reader, 0)
 	for _, url := range resources {
 		inputs = append(inputs, &resourceReader{
-			useInternalFunctions: p.useInternalFunctions,
+			useInternalFunctions: p.inlineBuiltinFunctions,
 			logger:               p.logger,
 			pwd:                  p.pwd,
 			url:                  url.(string),
@@ -165,7 +165,7 @@ func (p *packageImpl) buildPipelineFilters(manifest *kyaml.RNode, cacheDir, temp
 
 		logger := ChildLogger(p.logger)
 
-		if factory, internal := internalFunctionsMapping[origImage]; internal && p.useInternalFunctions {
+		if factory, internal := internalFunctionsMapping[origImage]; internal && p.inlineBuiltinFunctions {
 			function := factory()
 			if err := kyaml.NewDecoder(strings.NewReader(configYAML)).Decode(function); err != nil {
 				return nil, fmt.Errorf("failed to apply configuration of function '%s' from package manifest: %w", name, err)
