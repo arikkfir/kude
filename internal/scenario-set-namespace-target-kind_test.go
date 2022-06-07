@@ -12,11 +12,11 @@ import (
 	"testing"
 )
 
-//go:embed scenario-import-external-file.yaml
-var ImportExternalFileYAML string
+//go:embed scenario-set-namespace-target-kind.yaml
+var SetNamespaceTargetKindYAML string
 
-func TestImportExternalFile(t *testing.T) {
-	s, err := scenario.OpenScenario("TestImportExternalFile", strings.NewReader(ImportExternalFileYAML))
+func TestSetNamespaceTargetKind(t *testing.T) {
+	s, err := scenario.OpenScenario("TestSetNamespaceTargetKind", strings.NewReader(SetNamespaceTargetKindYAML))
 	if err != nil {
 		t.Fatalf("Failed to open scenario: %s", err)
 	}

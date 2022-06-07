@@ -12,11 +12,11 @@ import (
 	"testing"
 )
 
-//go:embed scenario-import-external-file.yaml
-var ImportExternalFileYAML string
+//go:embed scenario-label-with-file-values.yaml
+var LabelWithFileValuesYAML string
 
-func TestImportExternalFile(t *testing.T) {
-	s, err := scenario.OpenScenario("TestImportExternalFile", strings.NewReader(ImportExternalFileYAML))
+func TestLabelWithFileValues(t *testing.T) {
+	s, err := scenario.OpenScenario("TestLabelWithFileValues", strings.NewReader(LabelWithFileValuesYAML))
 	if err != nil {
 		t.Fatalf("Failed to open scenario: %s", err)
 	}

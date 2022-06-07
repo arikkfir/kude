@@ -12,11 +12,11 @@ import (
 	"testing"
 )
 
-//go:embed scenario-import-external-file.yaml
-var ImportExternalFileYAML string
+//go:embed scenario-annotate-with-inline-values.yaml
+var AnnotateWithInlineValuesYAML string
 
-func TestImportExternalFile(t *testing.T) {
-	s, err := scenario.OpenScenario("TestImportExternalFile", strings.NewReader(ImportExternalFileYAML))
+func TestAnnotateWithInlineValues(t *testing.T) {
+	s, err := scenario.OpenScenario("TestAnnotateWithInlineValues", strings.NewReader(AnnotateWithInlineValuesYAML))
 	if err != nil {
 		t.Fatalf("Failed to open scenario: %s", err)
 	}
