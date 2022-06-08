@@ -31,7 +31,7 @@ func InvokeFunction(f Function) {
 	}
 }
 
-func invokeFunction(logger *log.Logger, v *viper.Viper, configFileDir, configFileName string, f Function, input io.Reader, output io.Writer) error {
+func invokeFunction(logger *log.Logger, v *viper.Viper, configFileDir, configFileName string, f Function, input io.Reader, output io.Writer, opts ...viper.DecoderConfigOption) error {
 	logger.SetFlags(0)
 	v.SetConfigType("yaml")
 	v.AddConfigPath(configFileDir)
@@ -45,7 +45,7 @@ func invokeFunction(logger *log.Logger, v *viper.Viper, configFileDir, configFil
 			return fmt.Errorf("failed reading configuration: %w", err)
 		}
 	}
-	if err := v.Unmarshal(&f); err != nil {
+	if err := v.Unmarshal(&f, opts...); err != nil {
 		return fmt.Errorf("unable to decode configuration: %w", err)
 	} else if pwd, err := os.Getwd(); err != nil {
 		return fmt.Errorf("failed to get current working directory: %w", err)

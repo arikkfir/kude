@@ -2,6 +2,8 @@ package pkg
 
 import (
 	"bytes"
+	"errors"
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 	"io"
 	"log"
@@ -12,12 +14,14 @@ import (
 )
 
 type testFunction1 struct {
-	Foo      string `expected:"bar"`
-	Some     string `expected:"thing"`
-	logger   *log.Logger
-	pwd      string
-	cacheDir string
-	tempDir  string
+	Foo            string `expected:"bar"`
+	Some           string `expected:"thing"`
+	logger         *log.Logger
+	pwd            string
+	cacheDir       string
+	tempDir        string
+	configureError error
+	invokeError    error
 }
 
 func (f *testFunction1) Configure(logger *log.Logger, pwd, cacheDir, tempDir string) error {
@@ -25,12 +29,15 @@ func (f *testFunction1) Configure(logger *log.Logger, pwd, cacheDir, tempDir str
 	f.pwd = pwd
 	f.cacheDir = cacheDir
 	f.tempDir = tempDir
-	return nil
+	return f.configureError
 }
 
 func (f *testFunction1) Invoke(input io.Reader, output io.Writer) error {
-	_, err := io.Copy(output, input)
-	return err
+	if _, err := io.Copy(output, input); err != nil {
+		return err
+	} else {
+		return f.invokeError
+	}
 }
 
 func TestInvokeFunctionConfiguration(t *testing.T) {
@@ -107,6 +114,26 @@ func TestInvokeFunctionInvalidConfigFile(t *testing.T) {
 	}
 }
 
+func TestInvokeFunctionConfigDecodingError(t *testing.T) {
+	dir := t.TempDir()
+	fileName := t.Name() + ".yaml"
+	contents := []byte(`{"bar": 1}`) // INTENTIONALLY MISMATCHING JSON (int->string should fail us)
+	if err := os.WriteFile(filepath.Join(dir, fileName), contents, 0644); err != nil {
+		t.Fatal(err)
+	}
+	logger := log.New(io.Discard, "prefix", log.LstdFlags)
+	v := viper.New()
+	f := testFunction1{}
+	hook := func(c *mapstructure.DecoderConfig) {
+		c.ErrorUnused = true
+	}
+	if err := invokeFunction(logger, v, dir, fileName, &f, strings.NewReader("hello world"), io.Discard, hook); err == nil {
+		t.Fatal("expected failed invocation, but it did not fail")
+	} else if !strings.HasPrefix(err.Error(), "unable to decode configuration") {
+		t.Fatalf("expected error to start with 'unable to decode configuration', but got: %s", err)
+	}
+}
+
 func TestInvokeFunctionInvocation(t *testing.T) {
 	const stdinContent = "hello world"
 	stdin := strings.NewReader(stdinContent)
@@ -118,5 +145,27 @@ func TestInvokeFunctionInvocation(t *testing.T) {
 	}
 	if stdout.String() != stdinContent {
 		t.Errorf("stdout expected to be '%s', got '%s'", stdinContent, stdout.String())
+	}
+}
+
+func TestInvokeFunctionFailingConfigureCall(t *testing.T) {
+	logger := log.New(io.Discard, "prefix", log.LstdFlags)
+	v := viper.New()
+	f := testFunction1{configureError: errors.New("configure error")}
+	if err := invokeFunction(logger, v, ConfigFileDir, ConfigFileName, &f, strings.NewReader(""), io.Discard); err == nil {
+		t.Fatal("expected failed invocation, but it did not fail")
+	} else if err.Error() != "failed to configure function: configure error" {
+		t.Fatalf("expected error to be 'failed to configure function: configure error', but got: %s", err)
+	}
+}
+
+func TestInvokeFunctionFailingInvokeCall(t *testing.T) {
+	logger := log.New(io.Discard, "prefix", log.LstdFlags)
+	v := viper.New()
+	f := testFunction1{invokeError: errors.New("invoke error")}
+	if err := invokeFunction(logger, v, ConfigFileDir, ConfigFileName, &f, strings.NewReader(""), io.Discard); err == nil {
+		t.Fatal("expected failed invocation, but it did not fail")
+	} else if err.Error() != "failed to invoke function: invoke error" {
+		t.Fatalf("expected error to be 'failed to invoke function: invoke error', but got: %s", err)
 	}
 }
