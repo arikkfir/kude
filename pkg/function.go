@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"fmt"
 	"github.com/spf13/viper"
 	"io"
 	"log"
@@ -12,6 +13,8 @@ import (
 const ConfigFileDir = "/etc/kude/function"
 const ConfigFileName = "config.yaml"
 const ConfigFile = ConfigFileDir + "/" + ConfigFileName
+const DockerCacheDir = "/workspace/.cache"
+const DockerTempDir = "/workspace/.temp"
 
 type Package interface {
 	Execute() error
@@ -23,25 +26,34 @@ type Function interface {
 }
 
 func InvokeFunction(f Function) {
-	log.SetFlags(0)
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(ConfigFileDir)
-	viper.SetConfigName(strings.TrimSuffix(ConfigFileName, filepath.Ext(ConfigFileName)))
-	viper.SetEnvPrefix("KUDE")
-	viper.AutomaticEnv()
-	if err := viper.ReadInConfig(); err != nil {
+	if err := invokeFunction(log.Default(), viper.GetViper(), ConfigFileDir, ConfigFileName, f, os.Stdin, os.Stdout); err != nil {
+		log.Fatalf("function failed: %v", err)
+	}
+}
+
+func invokeFunction(logger *log.Logger, v *viper.Viper, configFileDir, configFileName string, f Function, input io.Reader, output io.Writer, opts ...viper.DecoderConfigOption) error {
+	logger.SetFlags(0)
+	v.SetConfigType("yaml")
+	v.AddConfigPath(configFileDir)
+	v.SetConfigName(strings.TrimSuffix(configFileName, filepath.Ext(configFileName)))
+	v.SetEnvPrefix("KUDE")
+	v.AutomaticEnv()
+	if err := v.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			// no-op
 		} else {
-			log.Fatalf("Failed reading function configuration: %v", err)
+			return fmt.Errorf("failed reading configuration: %w", err)
 		}
-	} else if err := viper.Unmarshal(&f); err != nil {
-		log.Fatalf("unable to decode configuration: %v", err)
+	}
+	if err := v.Unmarshal(&f, opts...); err != nil {
+		return fmt.Errorf("unable to decode configuration: %w", err)
 	} else if pwd, err := os.Getwd(); err != nil {
-		log.Fatalf("unable to get current working directory: %v", err)
-	} else if err := f.Configure(log.Default(), pwd, "/workspace/.cache", "/workspace/.temp"); err != nil {
-		log.Fatalf("failed configuring function: %v", err)
-	} else if err := f.Invoke(os.Stdin, os.Stdout); err != nil {
-		log.Fatalf("function execution failed: %v", err)
+		return fmt.Errorf("failed to get current working directory: %w", err)
+	} else if err := f.Configure(logger, pwd, DockerCacheDir, DockerTempDir); err != nil {
+		return fmt.Errorf("failed to configure function: %w", err)
+	} else if err := f.Invoke(input, output); err != nil {
+		return fmt.Errorf("failed to invoke function: %w", err)
+	} else {
+		return nil
 	}
 }
