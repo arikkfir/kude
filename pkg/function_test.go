@@ -44,7 +44,7 @@ func TestInvokeFunctionConfiguration(t *testing.T) {
 	logger := log.New(io.Discard, "prefix", log.LstdFlags)
 	v := viper.New()
 	f := testFunction1{}
-	if err := invokeFunction(logger, v, dir, fileName, &f, strings.NewReader("hello world"), os.Stdout); err != nil {
+	if err := invokeFunction(logger, v, dir, fileName, &f, strings.NewReader("hello world"), io.Discard); err != nil {
 		t.Fatal(err)
 	}
 	if f.logger != logger {
@@ -79,14 +79,31 @@ func TestInvokeFunctionMissingConfigFile(t *testing.T) {
 	logger := log.New(io.Discard, "prefix", log.LstdFlags)
 	v := viper.New()
 	f := testFunction1{}
-	if err := invokeFunction(logger, v, dir, fileName, &f, strings.NewReader("hello world"), os.Stdout); err != nil {
+	if err := invokeFunction(logger, v, dir, fileName, &f, strings.NewReader("hello world"), io.Discard); err != nil {
 		t.Fatal(err)
 	}
 	if f.Foo != "" {
 		t.Errorf("'foo' expected to be empty")
 	}
-	if f.Some != "thing" {
+	if f.Some != "" {
 		t.Errorf("'some' not set to 'thing'")
+	}
+}
+
+func TestInvokeFunctionInvalidConfigFile(t *testing.T) {
+	dir := t.TempDir()
+	fileName := t.Name() + ".yaml"
+	contents := []byte(`{"foo: "bar"`) // INTENTIONALLY BAD JSON
+	if err := os.WriteFile(filepath.Join(dir, fileName), contents, 0644); err != nil {
+		t.Fatal(err)
+	}
+	logger := log.New(io.Discard, "prefix", log.LstdFlags)
+	v := viper.New()
+	f := testFunction1{}
+	if err := invokeFunction(logger, v, dir, fileName, &f, strings.NewReader("hello world"), io.Discard); err == nil {
+		t.Fatal("expected invalid configuration file to fail invocation, but it did not")
+	} else if !strings.HasPrefix(err.Error(), "failed reading configuration") {
+		t.Fatalf("expected error to start with 'failed reading configuration', but got: %s", err)
 	}
 }
 
@@ -94,7 +111,9 @@ func TestInvokeFunctionInvocation(t *testing.T) {
 	const stdinContent = "hello world"
 	stdin := strings.NewReader(stdinContent)
 	stdout := bytes.Buffer{}
-	if err := invokeFunction(log.New(io.Discard, "prefix", log.LstdFlags), viper.New(), ConfigFileDir, ConfigFileName, &testFunction1{}, stdin, &stdout); err != nil {
+	logger := log.New(io.Discard, "prefix", log.LstdFlags)
+	v := viper.New()
+	if err := invokeFunction(logger, v, ConfigFileDir, ConfigFileName, &testFunction1{}, stdin, &stdout); err != nil {
 		t.Fatal(err)
 	}
 	if stdout.String() != stdinContent {

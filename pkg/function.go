@@ -41,11 +41,11 @@ func invokeFunction(logger *log.Logger, v *viper.Viper, configFileDir, configFil
 	if err := v.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
 			// no-op
-			return nil
 		} else {
 			return fmt.Errorf("failed reading configuration: %w", err)
 		}
-	} else if err := v.Unmarshal(&f); err != nil {
+	}
+	if err := v.Unmarshal(&f); err != nil {
 		return fmt.Errorf("unable to decode configuration: %w", err)
 	} else if pwd, err := os.Getwd(); err != nil {
 		return fmt.Errorf("failed to get current working directory: %w", err)
