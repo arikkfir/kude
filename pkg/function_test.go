@@ -33,7 +33,7 @@ func (f *testFunction1) Invoke(input io.Reader, output io.Writer) error {
 	return err
 }
 
-func TestInvokeFunction(t *testing.T) {
+func TestInvokeFunctionConfiguration(t *testing.T) {
 	dir := t.TempDir()
 	fileName := t.Name() + ".yaml"
 	contents := []byte(`{"foo": "bar", "some": "badValue"}`)
@@ -44,10 +44,7 @@ func TestInvokeFunction(t *testing.T) {
 	logger := log.New(io.Discard, "prefix", log.LstdFlags)
 	v := viper.New()
 	f := testFunction1{}
-	const stdinContent = "hello world"
-	stdin := strings.NewReader(stdinContent)
-	stdout := bytes.Buffer{}
-	if err := invokeFunction(logger, v, dir, fileName, &f, stdin, &stdout); err != nil {
+	if err := invokeFunction(logger, v, dir, fileName, &f, strings.NewReader("hello world"), os.Stdout); err != nil {
 		t.Fatal(err)
 	}
 	if f.logger != logger {
@@ -72,6 +69,33 @@ func TestInvokeFunction(t *testing.T) {
 	}
 	if f.Some != "thing" {
 		t.Errorf("'some' not set to 'thing'")
+	}
+}
+
+func TestInvokeFunctionMissingConfigFile(t *testing.T) {
+	dir := t.TempDir()
+	fileName := t.Name() + ".yaml"
+	t.Setenv("KUDE_SOME", "thing")
+	logger := log.New(io.Discard, "prefix", log.LstdFlags)
+	v := viper.New()
+	f := testFunction1{}
+	if err := invokeFunction(logger, v, dir, fileName, &f, strings.NewReader("hello world"), os.Stdout); err != nil {
+		t.Fatal(err)
+	}
+	if f.Foo != "" {
+		t.Errorf("'foo' expected to be empty")
+	}
+	if f.Some != "thing" {
+		t.Errorf("'some' not set to 'thing'")
+	}
+}
+
+func TestInvokeFunctionInvocation(t *testing.T) {
+	const stdinContent = "hello world"
+	stdin := strings.NewReader(stdinContent)
+	stdout := bytes.Buffer{}
+	if err := invokeFunction(log.New(io.Discard, "prefix", log.LstdFlags), viper.New(), ConfigFileDir, ConfigFileName, &testFunction1{}, stdin, &stdout); err != nil {
+		t.Fatal(err)
 	}
 	if stdout.String() != stdinContent {
 		t.Errorf("stdout expected to be '%s', got '%s'", stdinContent, stdout.String())
