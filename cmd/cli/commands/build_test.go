@@ -74,6 +74,30 @@ func TestBuildPathIsDirWithKudeYAMLFileIsDir(t *testing.T) {
 	}
 }
 
+func TestBuildPathIsDirWithInvalidKudeYAMLFile(t *testing.T) {
+	dir, err := os.MkdirTemp("", t.Name())
+	kudeYAMLFile := filepath.Join(dir, "kude.yaml")
+	if err != nil {
+		t.Fatalf("failed to create temporary directory: %s", err)
+	} else if err := os.WriteFile(kudeYAMLFile, []byte(""), 0644); err != nil {
+		t.Fatalf("failed to create invalid kude.yaml file: %s", err)
+	}
+	defer func() {
+		os.RemoveAll(dir)
+	}()
+
+	b := builder{
+		path:   dir,
+		logger: log.New(&util.TestWriter{T: t}, "", 0),
+		stdout: &util.TestWriter{T: t},
+	}
+	if err := b.Invoke(); err == nil {
+		t.Fatalf("Command should have failed")
+	} else if err.Error() != "failed to execute package: failed to parse YAML: failed to parse YAML: EOF" {
+		t.Fatalf("Command failed with incorrect error: %s", err)
+	}
+}
+
 func TestBuildPathIsDirWithKudeYAMLFile(t *testing.T) {
 	s, err := scenario.OpenScenario("TestBuildPathIsDirWithKudeYAMLFile", strings.NewReader(simpleScenarioYAML))
 	if err != nil {
