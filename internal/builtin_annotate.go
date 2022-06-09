@@ -50,7 +50,7 @@ func (f *Annotate) Invoke(r io.Reader, w io.Writer) error {
 	pipeline := kio.Pipeline{
 		Inputs: []kio.Reader{&kio.ByteReader{Reader: r}},
 		Filters: []kio.Filter{
-			pkg.Fanout(
+			kio.FilterAll(
 				yaml.Tee(
 					pkg.SingleResourceTargeting(f.Includes, f.Excludes),
 					yaml.SetAnnotation(f.Name, value),
