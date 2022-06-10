@@ -10,7 +10,7 @@ kind: Pipeline
 resources:
   - deployment.yaml
 pipeline:
-  - image: ghcr.io/arikkfir/kude/functions/create-namespace:latest
+  - image: ghcr.io/arikkfir/kude/functions/create-namespace
     config:
       name: my-namespace
 ```

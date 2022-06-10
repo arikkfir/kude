@@ -15,7 +15,7 @@ kind: Pipeline
 resources:
   - deployment.yaml
 pipeline:
-  - image: ghcr.io/arikkfir/kude/functions/create-secret:latest
+  - image: ghcr.io/arikkfir/kude/functions/create-secret
     config:
       name: my-secret
       namespace: appX # optional

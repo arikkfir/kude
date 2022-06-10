@@ -10,7 +10,7 @@ kind: Pipeline
 resources:
   - deployment.yaml
 pipeline:
-  - image: ghcr.io/arikkfir/kude/functions/set-namespace:latest
+  - image: ghcr.io/arikkfir/kude/functions/set-namespace
     config:
       namespace: test
 ```

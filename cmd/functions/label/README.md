@@ -11,11 +11,11 @@ kind: Pipeline
 resources:
   - deployment.yaml
 pipeline:
-  - image: ghcr.io/arikkfir/kude/functions/label:latest
+  - image: ghcr.io/arikkfir/kude/functions/label
     config:
       name: app.kubernetes.io/name
       value: my-app
-  - image: ghcr.io/arikkfir/kude/functions/label:latest
+  - image: ghcr.io/arikkfir/kude/functions/label
     config:
       name: app.kubernetes.io/version
       path: VERSION

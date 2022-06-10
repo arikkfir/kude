@@ -11,11 +11,11 @@ kind: Pipeline
 resources:
   - deployment.yaml
 pipeline:
-  - image: ghcr.io/arikkfir/kude/functions/annotate:latest
+  - image: ghcr.io/arikkfir/kude/functions/annotate
     config:
       name: purpose
       value: kude-example
-  - image: ghcr.io/arikkfir/kude/functions/annotate:latest
+  - image: ghcr.io/arikkfir/kude/functions/annotate
     config:
       name: copyright
       path: COPYRIGHT
