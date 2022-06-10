@@ -75,7 +75,8 @@ resources:
   - deployment.yaml
   - service.yaml
 pipeline:
-  # Define just one function to process resources:
+  # Define just one function to process resources
+  # It will add an annotation to each resource
   - image: ghcr.io/arikkfir/kude/functions/annotate
     config:
       name: purpose
