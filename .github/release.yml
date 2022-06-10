@@ -12,6 +12,18 @@ changelog:
     - title: Bug Fixes 🐛
       labels:
         - bug
+    - title: Testing
+      labels:
+        - testing
+    - title: Build & CI
+      labels:
+        - ci
+    - title: Documentation
+      labels:
+        - documentation
+    - title: IDE
+      labels:
+        - ide
     - title: Other Changes
       labels:
         - "*"
