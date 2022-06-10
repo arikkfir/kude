@@ -137,7 +137,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: super-microservice  # <-- ANNOTATED!
+      app.kubernetes.io/name: super-microservice
   template:
     metadata:
       labels:
