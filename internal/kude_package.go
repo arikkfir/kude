@@ -158,7 +158,6 @@ func (p *packageImpl) buildPipelineFilters(manifest *kyaml.RNode, cacheDir, temp
 				if !filepath.IsAbs(remote) {
 					remote = filepath.Join("/workspace", remote)
 				}
-				p.logger.Printf("Mounting '%s' as '%s'", local, remote)
 				mounts = append(mounts, local+":"+remote)
 			}
 		}
