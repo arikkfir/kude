@@ -132,7 +132,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    purpose: kude-example
+    purpose: kude-example # <-- ANNOTATED!
   name: super-microservice
 spec:
   selector:
