@@ -137,7 +137,7 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: super-microservice
+      app.kubernetes.io/name: super-microservice  # <-- ANNOTATED!
   template:
     metadata:
       labels:
@@ -153,7 +153,7 @@ apiVersion: v1
 kind: Service
 metadata:
   annotations:
-    purpose: kude-example
+    purpose: kude-example # <-- ANNOTATED!
   name: super-microservice
 spec:
   ports:
