@@ -1,13 +1,13 @@
-package pkg
+package kude
 
 import (
 	"bytes"
 	_ "embed"
 	"fmt"
+	"github.com/arikkfir/kude/internal"
 	"github.com/hexops/gotextdiff"
 	"github.com/hexops/gotextdiff/myers"
 	"github.com/hexops/gotextdiff/span"
-	"io"
 	"sigs.k8s.io/kustomize/kyaml/kio"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 	"strings"
@@ -21,30 +21,6 @@ var targetingFilterTestInputYAML string
 var targetingFilterTestExpectedYAML string
 
 func TestTargetingFilter(t *testing.T) {
-	formatYAML := func(r io.Reader) (string, error) {
-		const formatYAMLFailureMessage = `%s: %w
-======
-%s
-======`
-
-		formatted := bytes.Buffer{}
-		decoder := yaml.NewDecoder(r)
-		encoder := yaml.NewEncoder(&formatted)
-		encoder.SetIndent(2)
-		for {
-			var data interface{}
-			if err := decoder.Decode(&data); err != nil {
-				if err == io.EOF {
-					break
-				}
-				return "", fmt.Errorf(formatYAMLFailureMessage, "failed decoding YAML", err, r)
-			} else if err := encoder.Encode(data); err != nil {
-				return "", fmt.Errorf(formatYAMLFailureMessage, "failed encoding struct", err, r)
-			}
-		}
-		return formatted.String(), nil
-	}
-
 	out := bytes.Buffer{}
 	pipeline := kio.Pipeline{
 		Inputs: []kio.Reader{&kio.ByteReader{Reader: strings.NewReader(targetingFilterTestInputYAML)}},
@@ -128,9 +104,9 @@ func TestTargetingFilter(t *testing.T) {
 		t.Errorf("failed to execute pipeline: %v", err)
 	}
 
-	if actual, err := formatYAML(&out); err != nil {
+	if actual, err := internal.FormatYAML(&out); err != nil {
 		t.Fatalf("Failed to format YAML output: %s", err)
-	} else if expected, err := formatYAML(strings.NewReader(targetingFilterTestExpectedYAML)); err != nil {
+	} else if expected, err := internal.FormatYAML(strings.NewReader(targetingFilterTestExpectedYAML)); err != nil {
 		t.Fatalf("Failed to format expected YAML output: %s", err)
 	} else if strings.TrimSuffix(expected, "\n") != strings.TrimSuffix(actual, "\n") {
 		edits := myers.ComputeEdits(span.URIFromPath("expected"), expected, actual)

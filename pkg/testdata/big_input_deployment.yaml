@@ -1,0 +1,16 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment-$$$
+spec:
+  selector:
+    matchLabels:
+      labeled: "yes"
+  template:
+    metadata:
+      labels:
+        labeled: "yes"
+    spec:
+      containers:
+        - image: nginx
+          name: nginx

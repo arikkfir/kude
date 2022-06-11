@@ -1,4 +1,4 @@
-package pkg
+package kude
 
 import (
 	"fmt"
@@ -16,22 +16,20 @@ const ConfigFile = ConfigFileDir + "/" + ConfigFileName
 const DockerCacheDir = "/workspace/.cache"
 const DockerTempDir = "/workspace/.temp"
 
-type Package interface {
-	Execute() error
-}
-
 type Function interface {
-	Configure(logger *log.Logger, pwd, cacheDir, tempDir string) error
-	Invoke(io.Reader, io.Writer) error
+	Invoke(logger *log.Logger, pwd, cacheDir, tempDir string, r io.Reader, w io.Writer) error
 }
 
 func InvokeFunction(f Function) {
-	if err := invokeFunction(log.Default(), viper.GetViper(), ConfigFileDir, ConfigFileName, f, os.Stdin, os.Stdout); err != nil {
+	if pwd, err := os.Getwd(); err != nil {
+		log.Fatalf("failed to get current working directory: %v", err)
+	} else if err := invokeFunction(pwd, log.Default(), viper.GetViper(), ConfigFileDir, ConfigFileName, DockerCacheDir, DockerTempDir, f, os.Stdin, os.Stdout); err != nil {
 		log.Fatalf("function failed: %v", err)
 	}
 }
 
-func invokeFunction(logger *log.Logger, v *viper.Viper, configFileDir, configFileName string, f Function, input io.Reader, output io.Writer, opts ...viper.DecoderConfigOption) error {
+// TODO: refactor InvokeFunction into a FunctionExecution construct, supported for both inline and Docker runs
+func invokeFunction(pwd string, logger *log.Logger, v *viper.Viper, configFileDir, configFileName, cacheDir, tempDir string, f Function, input io.Reader, output io.Writer, opts ...viper.DecoderConfigOption) error {
 	logger.SetFlags(0)
 	v.SetConfigType("yaml")
 	v.AddConfigPath(configFileDir)
@@ -47,11 +45,7 @@ func invokeFunction(logger *log.Logger, v *viper.Viper, configFileDir, configFil
 	}
 	if err := v.Unmarshal(&f, opts...); err != nil {
 		return fmt.Errorf("unable to decode configuration: %w", err)
-	} else if pwd, err := os.Getwd(); err != nil {
-		return fmt.Errorf("failed to get current working directory: %w", err)
-	} else if err := f.Configure(logger, pwd, DockerCacheDir, DockerTempDir); err != nil {
-		return fmt.Errorf("failed to configure function: %w", err)
-	} else if err := f.Invoke(input, output); err != nil {
+	} else if err := f.Invoke(logger, pwd, cacheDir, tempDir, input, output); err != nil {
 		return fmt.Errorf("failed to invoke function: %w", err)
 	} else {
 		return nil

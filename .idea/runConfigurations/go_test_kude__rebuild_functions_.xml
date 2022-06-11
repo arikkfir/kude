@@ -7,7 +7,6 @@
     <filePath value="$PROJECT_DIR$" />
     <framework value="gotest" />
     <method v="2">
-      <option name="GoBeforeRunTask" command="generate" />
       <option name="RunConfigurationTask" enabled="true" run_configuration_name="Build function Docker images" run_configuration_type="ShConfigurationType" />
     </method>
   </configuration>

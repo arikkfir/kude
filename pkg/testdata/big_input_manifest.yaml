@@ -1,0 +1,9 @@
+apiVersion: kude.kfirs.com/v1alpha2
+kind: Pipeline
+resources:
+  - resources.yaml
+steps:
+  - image: ghcr.io/arikkfir/kude/functions/annotate
+    config:
+      name: foo
+      value: bar

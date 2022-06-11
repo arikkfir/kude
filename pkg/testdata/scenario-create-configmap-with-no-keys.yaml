@@ -1,0 +1,30 @@
+apiVersion: kude.kfirs.com/v1alpha1
+kind: Scenario
+pipeline:
+  apiVersion: kude.kfirs.com/v1alpha2
+  kind: Pipeline
+  steps:
+    - image: ghcr.io/arikkfir/kude/functions/create-configmap
+      config:
+        name: empty-keys
+        contents: []
+    - image: ghcr.io/arikkfir/kude/functions/create-configmap
+      config:
+        name: no-contents-key
+
+expected: |+
+  apiVersion: v1
+  data: {}
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kude.kfirs.com/previous-name: empty-keys
+    name: empty-keys-da39a3ee5e6b4b0d3255bfef95601890afd80709
+  ---
+  apiVersion: v1
+  data: {}
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kude.kfirs.com/previous-name: no-contents-key
+    name: no-contents-key-da39a3ee5e6b4b0d3255bfef95601890afd80709

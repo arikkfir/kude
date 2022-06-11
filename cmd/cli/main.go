@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/arikkfir/kude/cmd/cli/commands"
+	"github.com/arikkfir/kude/cmd/cli/commands/root"
 	"log"
 	"os"
 )
@@ -11,8 +11,7 @@ func init() {
 }
 
 func main() {
-	err := commands.RootCmd.Execute()
-	if err != nil {
+	if err := root.Cmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
