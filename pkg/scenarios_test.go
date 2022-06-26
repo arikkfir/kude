@@ -37,8 +37,6 @@ func TestScenarios(t *testing.T) {
 	}
 
 	execute := func(t *testing.T, name string, inlineBuiltinFunctions bool) {
-		t.Parallel()
-
 		var expectedContents, expectedError string
 
 		b, err := scenarios.ReadFile("testdata/" + name)
