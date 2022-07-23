@@ -68,13 +68,13 @@ Given this directory structure:
 
 The `kude.yaml` contains:
 ```yaml
-apiVersion: kude.kfirs.com/v1alpha1
+apiVersion: kude.kfirs.com/v1alpha2
 kind: Pipeline
 resources:
   # Define two local input resources:
   - deployment.yaml
   - service.yaml
-pipeline:
+steps:
   # Define just one function to process resources
   # It will add an annotation to each resource
   - image: ghcr.io/arikkfir/kude/functions/annotate

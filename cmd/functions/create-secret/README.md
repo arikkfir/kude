@@ -10,11 +10,11 @@ resources are).
 ## Usage
 
 ```yaml
-apiVersion: kude.kfirs.com/v1alpha1
+apiVersion: kude.kfirs.com/v1alpha2
 kind: Pipeline
 resources:
   - deployment.yaml
-pipeline:
+steps:
   - image: ghcr.io/arikkfir/kude/functions/create-secret
     config:
       name: my-secret
