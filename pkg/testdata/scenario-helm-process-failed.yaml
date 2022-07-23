@@ -24,4 +24,4 @@ resources:
       name: sa2
 
 expectedError: |-
-  pipeline error: failed executing step '001 // ghcr.io/arikkfir/kude/functions/helm:unknown': step error: .* (container failed|process failed)
+  pipeline error: failed executing step '001 // ghcr.io/arikkfir/kude/functions/helm:.+': step error: .* (container failed|process failed)

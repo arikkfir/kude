@@ -14,4 +14,4 @@ pipeline:
         - foo-file.txt
 
 expectedError: |-
-  pipeline error: failed executing step '001 // ghcr.io/arikkfir/kude/functions/create-configmap:unknown': step error: .* \S+/foo-file.txt
+  pipeline error: failed executing step '001 // ghcr.io/arikkfir/kude/functions/create-configmap:.+': step error: .* \S+/foo-file.txt
