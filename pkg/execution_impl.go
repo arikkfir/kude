@@ -2,25 +2,28 @@ package kude
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/arikkfir/kude/internal"
+	"github.com/arikkfir/kude/internal/functions"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 	"io"
 	"io/ioutil"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"log"
 	"os"
 	"path/filepath"
-	"sigs.k8s.io/kustomize/kyaml/kio"
-	"sigs.k8s.io/kustomize/kyaml/yaml"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -29,27 +32,28 @@ import (
 const (
 	// PreviousNameAnnotationName is the name of the annotation that is used to provide the friendly resource name of
 	// a resource that has been renamed for uniqueness.
+	// TODO: ensure all places use this constant
 	PreviousNameAnnotationName = "kude.kfirs.com/previous-name"
 
 	// defaultInMemoryResourceCapacity is the default capacity of the in-memory resources buffer used during a pipeline
 	// execution. This is used to avoid reallocating the buffer every time a new resource is added, but is required in order
 	// to support resource references resolving - which requires reading all resources into memory.
-	defaultInMemoryResourceCapacity = 1_000_000
+	defaultInMemoryResourceCapacity = 1_000
 )
 
 var (
 	// containerStopTimeout is the maximum amount of time given for a container to stop, when instructed to.
 	containerStopTimeout = 5 * time.Minute
 
-	builtinFunctionsMapping = map[string]func() Function{
-		"ghcr.io/arikkfir/kude/functions/annotate":         func() Function { return &Annotate{} },
-		"ghcr.io/arikkfir/kude/functions/create-configmap": func() Function { return &CreateConfigMap{} },
-		"ghcr.io/arikkfir/kude/functions/create-namespace": func() Function { return &CreateNamespace{} },
-		"ghcr.io/arikkfir/kude/functions/create-secret":    func() Function { return &CreateSecret{} },
-		"ghcr.io/arikkfir/kude/functions/helm":             func() Function { return &Helm{} },
-		"ghcr.io/arikkfir/kude/functions/label":            func() Function { return &Label{} },
-		"ghcr.io/arikkfir/kude/functions/set-namespace":    func() Function { return &SetNamespace{} },
-		"ghcr.io/arikkfir/kude/functions/yq":               func() Function { return &YQ{} },
+	builtinFunctionsMapping = map[string]func() functions.Function{
+		"ghcr.io/arikkfir/kude/functions/annotate":         func() functions.Function { return &functions.Annotate{} },
+		"ghcr.io/arikkfir/kude/functions/create-configmap": func() functions.Function { return &functions.CreateConfigMap{} },
+		"ghcr.io/arikkfir/kude/functions/create-namespace": func() functions.Function { return &functions.CreateNamespace{} },
+		"ghcr.io/arikkfir/kude/functions/create-secret":    func() functions.Function { return &functions.CreateSecret{} },
+		"ghcr.io/arikkfir/kude/functions/helm":             func() functions.Function { return &functions.Helm{} },
+		"ghcr.io/arikkfir/kude/functions/label":            func() functions.Function { return &functions.Label{} },
+		"ghcr.io/arikkfir/kude/functions/set-namespace":    func() functions.Function { return &functions.SetNamespace{} },
+		"ghcr.io/arikkfir/kude/functions/yq":               func() functions.Function { return &functions.YQ{} },
 	}
 )
 
@@ -62,19 +66,19 @@ func (e *executionImpl) GetPipeline() Pipeline  { return e.pipeline }
 func (e *executionImpl) GetLogger() *log.Logger { return e.logger }
 
 func (e *executionImpl) ExecuteToWriter(ctx context.Context, w io.Writer) error {
-	target := make(chan *yaml.RNode)
-	exitCh := make(chan error, 2)
+	target := make(chan *yaml.Node, 5000)
+	exitCh := make(chan error, 1000)
 	wg := &sync.WaitGroup{}
 
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		defer wg.Done()
 		encoder := yaml.NewEncoder(w)
 		defer encoder.Close()
 		for {
 			node, ok := <-target
 			if ok {
-				if err := encoder.Encode(node.YNode()); err != nil {
+				if err := encoder.Encode(node); err != nil {
 					exitCh <- fmt.Errorf("failed to encode node to process stdout: %w", err)
 					return
 				}
@@ -84,16 +88,15 @@ func (e *executionImpl) ExecuteToWriter(ctx context.Context, w io.Writer) error 
 		}
 	}()
 
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		defer wg.Done()
 		defer close(target)
-		if err := e.ExecuteToSink(ctx, target); err != nil {
+		if err := e.ExecuteToChannel(ctx, target); err != nil {
 			exitCh <- err
 		}
 	}()
 
-	time.Sleep(1 * time.Second)
 	wg.Wait()
 	select {
 	case err := <-exitCh:
@@ -103,7 +106,10 @@ func (e *executionImpl) ExecuteToWriter(ctx context.Context, w io.Writer) error 
 	}
 }
 
-func (e *executionImpl) ExecuteToSink(ctx context.Context, target chan *yaml.RNode) error {
+func (e *executionImpl) ExecuteToChannel(ctx context.Context, target chan *yaml.Node) error {
+	timer := prometheus.NewTimer(executionsDurationHistogramMetric)
+	defer timer.ObserveDuration()
+
 	pwd := e.pipeline.GetDirectory()
 	e.logger.Printf("Executing pipeline at '%s'", pwd)
 
@@ -126,8 +132,8 @@ func (e *executionImpl) ExecuteToSink(ctx context.Context, target chan *yaml.RNo
 	// We'll wait for this wait-group to reach zero, meaning all threads finished
 	wg := sync.WaitGroup{}
 
-	// Goroutines will send errors to this channel; it's size is intentionally set to the number of goroutines we'll create
-	exitCh := make(chan error, 2+len(e.pipeline.GetSteps()))
+	// Goroutines will send errors to this channel; it's size is intentionally big to ensure goroutines do not block if/when they fail
+	exitCh := make(chan error, 1000)
 	defer close(exitCh)
 
 	////////////////////////////////////////////////////////////////////////////
@@ -138,18 +144,30 @@ func (e *executionImpl) ExecuteToSink(ctx context.Context, target chan *yaml.RNo
 	// Every Kubernetes resource from the processed pipeline resources will be
 	// pushed into the "resources" channel, to be consumed downstream.
 	////////////////////////////////////////////////////////////////////////////
-	resources := make(chan *yaml.RNode)
+	rwg := sync.WaitGroup{}
+	resources := make(chan *yaml.Node, 5000)
+	for _, r := range e.pipeline.GetResources() {
+		rwg.Add(1)
+		go func(path string) {
+			defer rwg.Done()
+
+			timer := prometheus.NewTimer(resGenDurationHistogramMetric.WithLabelValues(path))
+			defer timer.ObserveDuration()
+			resGenCounterMetric.WithLabelValues(path).Inc()
+
+			r := &resourceReader{ctx: ctx, pwd: e.GetPipeline().GetDirectory(), logger: e.GetLogger(), target: resources}
+			if err := r.Read(path); err != nil {
+				// TODO: add error counter
+				exitCh <- fmt.Errorf("failed streaming resources found in '%s': %w", path, err)
+				return
+			}
+		}(r)
+	}
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		defer wg.Done()
 		defer close(resources)
-		for _, resourcePath := range e.pipeline.GetResources() {
-			r := &resourceReader{ctx: ctx, pwd: e.GetPipeline().GetDirectory(), logger: e.GetLogger(), target: resources}
-			if err := r.Read(resourcePath); err != nil {
-				exitCh <- fmt.Errorf("failed streaming resources found in '%s': %w", resourcePath, err)
-				break
-			}
-		}
+		rwg.Wait()
 	}()
 
 	////////////////////////////////////////////////////////////////////////////
@@ -162,18 +180,24 @@ func (e *executionImpl) ExecuteToSink(ctx context.Context, target chan *yaml.RNo
 	////////////////////////////////////////////////////////////////////////////
 	stepInput := resources
 	for _, step := range e.pipeline.GetSteps() {
-		stepOutput := make(chan *yaml.RNode)
-		go func(step Step, input chan *yaml.RNode, output chan *yaml.RNode) {
-			wg.Add(1)
+		stepOutput := make(chan *yaml.Node, 5000)
+		wg.Add(1)
+		go func(step Step, input chan *yaml.Node, output chan *yaml.Node) {
 			defer wg.Done()
 			defer close(output)
+
+			timer := prometheus.NewTimer(stepDurationHistogramMetric.WithLabelValues(step.GetID(), step.GetName()))
+			defer timer.ObserveDuration()
+			gauge := stepGaugeMetric.WithLabelValues(step.GetID(), step.GetName())
+			gauge.Inc()
+			defer gauge.Dec()
+
 			if err := e.ExecuteStep(ctx, dockerClient, cacheDir, tempDir, step, input, output); err != nil {
 				exitCh <- fmt.Errorf("failed executing step '%s': %w", step.GetName(), err)
 			}
 		}(step, stepInput, stepOutput)
 		stepInput = stepOutput // next step's input will be output of this step
 	}
-	// TODO: add sort step (sort.Sort(ByType(rns)))
 
 	////////////////////////////////////////////////////////////////////////////
 	// COLLATE RENAMED RESOURCES
@@ -195,38 +219,33 @@ func (e *executionImpl) ExecuteToSink(ctx context.Context, target chan *yaml.RNo
 	// Additionally, the resource will be cleaned from internal annotations.
 	////////////////////////////////////////////////////////////////////////////
 	renamedResources := make(map[string]string)
-	collatedResources := make([]*yaml.RNode, 0, defaultInMemoryResourceCapacity)
-	go func(input chan *yaml.RNode) {
-		wg.Add(1)
+	collatedResources := make([]*yaml.Node, 0, defaultInMemoryResourceCapacity)
+	wg.Add(1)
+	go func(input chan *yaml.Node) {
 		defer wg.Done()
 		for {
 			node, ok := <-input
 			if ok {
-				annotations := node.GetAnnotations()
-				if annotations != nil {
-					if previousName, ok := annotations[PreviousNameAnnotationName]; ok {
-						apiVersion := node.GetApiVersion()
-						kind := node.GetKind()
-						namespace := node.GetNamespace()
-						key := fmt.Sprintf("%s/%s/%s/%s", apiVersion, kind, namespace, previousName)
-						renamedResources[key] = node.GetName()
-					}
-				}
-				if err := internal.RemoveKYAMLAnnotations(node); err != nil {
-					exitCh <- err
-					break
+				if previousName := internal.GetPreviousName(node); previousName != "" {
+					apiVersion := internal.GetAPIVersion(node)
+					kind := internal.GetKind(node)
+					namespace := internal.GetNamespace(node)
+					name := internal.GetName(node)
+					key := fmt.Sprintf("%s/%s/%s/%s", apiVersion, kind, namespace, previousName)
+					renamedResources[key] = name
 				}
 				collatedResources = append(collatedResources, node)
+				collectedResourcesCounter.Inc()
 			} else {
 				break
 			}
 		}
+		sort.Sort(ByType(collatedResources))
 	}(stepInput)
 
 	////////////////////////////////////////////////////////////////////////////
 	// WAIT FOR ALL GOROUTINES TO EXIT, THEN CHECK FOR ERRORS
 	////////////////////////////////////////////////////////////////////////////
-	time.Sleep(1 * time.Second)
 	wg.Wait()
 	select {
 	case err := <-exitCh:
@@ -240,56 +259,27 @@ func (e *executionImpl) ExecuteToSink(ctx context.Context, target chan *yaml.RNo
 	// PIPE RESOURCES TO TARGET SINK
 	////////////////////////////////////////////////////////////////////////////
 	e.logger.Printf("Processing %d resources...", len(collatedResources))
-	go func(resources []*yaml.RNode, renames map[string]string) {
-		wg.Add(1)
-		defer wg.Done()
-		for _, resource := range resources {
-			kind := resource.GetKind()
-			namespace := resource.GetNamespace()
-
-			apiVersion := resource.GetApiVersion()
-			var apiGroup, apiGroupVersion string
-			if lastSlashIndex := strings.LastIndex(apiVersion, "/"); lastSlashIndex < 0 {
-				apiGroup = ""
-				apiGroupVersion = apiVersion
-			} else {
-				apiGroup = apiVersion[0:lastSlashIndex]
-				apiGroupVersion = apiVersion[lastSlashIndex+1:]
-			}
-
-			gvk := v1.GroupVersionKind{Group: apiGroup, Version: apiGroupVersion, Kind: kind}
-			if refTypes, ok := referencesCatalog[gvk]; ok {
-				for _, refType := range refTypes {
-					err := refType.resolve(resource, namespace, renames)
-					if err != nil {
-						exitCh <- fmt.Errorf("error resolving reference: %w", err)
-						return
-					}
+	for i, n := range collatedResources {
+		if i%1000 == 0 {
+			e.logger.Printf("  Processed %d resources...", i)
+		}
+		apiGroup, apiGroupVersion := internal.GetAPIGroupAndVersion(n)
+		gvk := v1.GroupVersionKind{Group: apiGroup, Version: apiGroupVersion, Kind: internal.GetKind(n)}
+		if refTypes, ok := referencesCatalog[gvk]; ok {
+			for _, refType := range refTypes {
+				err := refType.resolve(n, renamedResources)
+				if err != nil {
+					return fmt.Errorf("failed resolving references in node: %w", err)
 				}
 			}
-
-			target <- resource
 		}
-	}(collatedResources, renamedResources)
-
-	////////////////////////////////////////////////////////////////////////////
-	// WAIT FOR ALL GOROUTINES TO EXIT, THEN CHECK FOR ERRORS
-	////////////////////////////////////////////////////////////////////////////
-	time.Sleep(1 * time.Second)
-	wg.Wait()
-	select {
-	case err := <-exitCh:
-		if err != nil {
-			return fmt.Errorf("pipeline error: %w", err)
-		} else {
-			return nil
-		}
-	default:
-		return nil
+		resolvedResourcesCounter.Inc()
+		target <- n
 	}
+	return nil
 }
 
-func (e *executionImpl) ExecuteStep(ctx context.Context, dockerClient *client.Client, cacheDir string, tempDir string, step Step, input chan *yaml.RNode, output chan *yaml.RNode) error {
+func (e *executionImpl) ExecuteStep(ctx context.Context, dockerClient *client.Client, cacheDir string, tempDir string, step Step, input chan *yaml.Node, output chan *yaml.Node) error {
 	logger := internal.NamedLogger(e.logger, step.GetID())
 	logger.Printf("Executing step '%s'", step.GetName())
 
@@ -297,7 +287,7 @@ func (e *executionImpl) ExecuteStep(ctx context.Context, dockerClient *client.Cl
 	wg := sync.WaitGroup{}
 
 	// Goroutines will send errors to this channel; it's size is intentionally set to the number of goroutines we'll create
-	exitCh := make(chan error, 3)
+	exitCh := make(chan error, 1000)
 	defer close(exitCh)
 
 	stdinReader, stdinWriter, err := os.Pipe()
@@ -305,16 +295,18 @@ func (e *executionImpl) ExecuteStep(ctx context.Context, dockerClient *client.Cl
 		return fmt.Errorf("failed to create step input pipe: %w", err)
 	}
 
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		defer wg.Done()
 		defer stdinWriter.Close()
 		encoder := yaml.NewEncoder(stdinWriter)
+		encoder.SetIndent(2)
 		defer encoder.Close()
 		for {
 			node, ok := <-input
 			if ok {
-				if err := encoder.Encode(node.YNode()); err != nil {
+				stepInputResourcesCounter.WithLabelValues(step.GetID(), step.GetName()).Inc()
+				if err := encoder.Encode(node); err != nil {
 					exitCh <- fmt.Errorf("failed encoding resource into container stdin: %w", err)
 					return
 				}
@@ -329,11 +321,10 @@ func (e *executionImpl) ExecuteStep(ctx context.Context, dockerClient *client.Cl
 		return fmt.Errorf("failed to create output pipe: %w", err)
 	}
 
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		defer wg.Done()
 		defer stdoutWriter.Close()
-
 		if e.pipeline.(*pipelineImpl).inlineBuiltinFunctions {
 			repo, _, _ := strings.Cut(step.GetImage(), ":")
 			if factory, found := builtinFunctionsMapping[repo]; found {
@@ -343,59 +334,73 @@ func (e *executionImpl) ExecuteStep(ctx context.Context, dockerClient *client.Cl
 				return
 			}
 		}
-
 		if err := e.executeContainer(ctx, dockerClient, cacheDir, tempDir, step, logger, stdinReader, stdoutWriter); err != nil {
 			exitCh <- fmt.Errorf("failed running container: %w", err)
 		}
 	}()
 
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		defer wg.Done()
 
-		reader := &kio.ByteReader{Reader: stdoutReader}
-		nodes, err := reader.Read()
-		if err != nil {
-			exitCh <- fmt.Errorf("failed reading resources from container stdout: %w", err)
-			return
-		}
-
-		for _, node := range nodes {
-			if apiVersion := node.GetApiVersion(); apiVersion == "" {
-				nodeYAML, err := node.String()
-				if err != nil {
-					logger.Printf("Failed converting an output node to YAML: %v", err)
+		decoder := yaml.NewDecoder(stdoutReader)
+		for {
+			node := &yaml.Node{}
+			if err := decoder.Decode(node); err != nil {
+				if errors.Is(err, io.EOF) {
+					return
+				} else {
+					exitCh <- fmt.Errorf("failed decoding YAML from container stdout: %w", err)
+					return
 				}
-				exitCh <- fmt.Errorf("resource has no apiVersion:\n%s\n===", nodeYAML)
+			}
+			stepOutputResourcesCounter.WithLabelValues(step.GetID(), step.GetName()).Inc()
+			if node.Kind == yaml.DocumentNode {
+				node = node.Content[0]
+			}
+			if node.Kind != yaml.MappingNode {
+				exitCh <- fmt.Errorf("unexpected YAML - expected object, got: %v", node.Kind)
 				return
 			}
-			if kind := node.GetKind(); kind == "" {
-				nodeYAML, err := node.String()
-				if err != nil {
+
+			if apiVersion := internal.GetAPIVersion(node); apiVersion == "" {
+				nodeYAML := &bytes.Buffer{}
+				encoder := yaml.NewEncoder(nodeYAML)
+				encoder.SetIndent(2)
+				if err := encoder.Encode(node); err != nil {
 					logger.Printf("Failed converting an output node to YAML: %v", err)
 				}
-				exitCh <- fmt.Errorf("resource has no kind:\n%s\n===", nodeYAML)
+				encoder.Close()
+				exitCh <- fmt.Errorf("resource has no apiVersion:\n%s\n===", nodeYAML.String())
+				return
+			}
+			if kind := internal.GetKind(node); kind == "" {
+				nodeYAML := &bytes.Buffer{}
+				encoder := yaml.NewEncoder(nodeYAML)
+				encoder.SetIndent(2)
+				if err := encoder.Encode(node); err != nil {
+					logger.Printf("Failed converting an output node to YAML: %v", err)
+				}
+				encoder.Close()
+				exitCh <- fmt.Errorf("resource has no kind:\n%s\n===", nodeYAML.String())
 				return
 			}
 			output <- node
 		}
 	}()
 
-	time.Sleep(1 * time.Second)
 	wg.Wait()
 	select {
 	case err := <-exitCh:
 		if err != nil {
 			return fmt.Errorf("step error: %w", err)
-		} else {
-			return nil
 		}
 	default:
-		return nil
 	}
+	return nil
 }
 
-func (e *executionImpl) executeBuiltinFunctionInline(_ context.Context, cacheDir string, tempDir string, step Step, logger *log.Logger, stdinReader io.Reader, stdoutWriter io.Writer, factory func() Function) error {
+func (e *executionImpl) executeBuiltinFunctionInline(_ context.Context, cacheDir string, tempDir string, step Step, logger *log.Logger, stdinReader io.Reader, stdoutWriter io.Writer, factory func() functions.Function) (er error) {
 	functionLogger := internal.NamedLogger(logger, "builtin")
 
 	////////////////////////////////////////////////////////////////////////////
@@ -410,39 +415,33 @@ func (e *executionImpl) executeBuiltinFunctionInline(_ context.Context, cacheDir
 	}
 
 	////////////////////////////////////////////////////////////////////////////
-	// BUILD MOUNTS LIST
-	////////////////////////////////////////////////////////////////////////////
-	//var mounts []string
-	//for _, mount := range step.GetMounts() {
-	//	local, remote, found := strings.Cut(mount, ":")
-	//	if local == "" {
-	//		return fmt.Errorf("invalid mount format: %s", mount)
-	//	} else if !found {
-	//		remote = local
-	//	}
-	//	if !filepath.IsAbs(local) {
-	//		local = filepath.Join(e.pipeline.GetDirectory(), local)
-	//	}
-	//	if _, err := os.Stat(local); errors.Is(err, os.ErrNotExist) {
-	//		return fmt.Errorf("could not find '%s'", local)
-	//	} else if err != nil {
-	//		return fmt.Errorf("failed stat for '%s': %w", local, err)
-	//	}
-	//	if !filepath.IsAbs(remote) {
-	//		remote = filepath.Join("/workspace", remote)
-	//	}
-	//	mounts = append(mounts, local+":"+remote)
-	//}
-
-	////////////////////////////////////////////////////////////////////////////
 	// INVOKE FUNCTION
 	////////////////////////////////////////////////////////////////////////////
 	function := factory()
 	e.pipeline.GetDirectory()
-	if err := invokeFunction(e.pipeline.GetDirectory(), functionLogger, viper.New(), tempDir, configFileName, cacheDir, tempDir, function, stdinReader, stdoutWriter); err != nil {
-		return fmt.Errorf("failed to invoke inline function: %w", err)
+	fi := functions.FunctionInvoker{
+		Function:       function,
+		Pwd:            e.pipeline.GetDirectory(),
+		Logger:         functionLogger,
+		ConfigFileDir:  tempDir,
+		ConfigFileName: configFileName,
+		CacheDir:       cacheDir,
+		TempDir:        tempDir,
+		Viper:          viper.New(),
 	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			if er != nil {
+				er = fmt.Errorf("failed to invoke inline function: %v\noriginal error: %w", r, er)
+			} else {
+				er = fmt.Errorf("failed to invoke inline function: %v", r)
+			}
+		}
+	}()
+	if err := fi.Invoke(stdinReader, stdoutWriter); err != nil {
+		return fmt.Errorf("failed to invoke inline function: %w", err)
+	}
 	return nil
 }
 
@@ -451,7 +450,7 @@ func (e *executionImpl) executeContainer(ctx context.Context, dockerClient *clie
 	wg := sync.WaitGroup{}
 
 	// Goroutines will send errors to this channel; it's size is intentionally set to the number of goroutines we'll create
-	exitCh := make(chan error, 3)
+	exitCh := make(chan error, 1000)
 	defer close(exitCh)
 
 	pullLogger := internal.NamedLogger(stepLogger, "pull")
@@ -473,7 +472,7 @@ func (e *executionImpl) executeContainer(ctx context.Context, dockerClient *clie
 	mounts := []string{
 		cacheDir + ":/workspace/.cache",
 		tempDir + ":/workspace/.temp",
-		configFile + ":" + ConfigFile,
+		configFile + ":" + functions.ConfigFile,
 	}
 	for _, mount := range step.GetMounts() {
 		local, remote, found := strings.Cut(mount, ":")
@@ -574,8 +573,8 @@ func (e *executionImpl) executeContainer(ctx context.Context, dockerClient *clie
 	////////////////////////////////////////////////////////////////////////////
 	// PUSH GIVEN RESOURCES INTO CONTAINER stdin
 	////////////////////////////////////////////////////////////////////////////
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		defer wg.Done()
 		stdinAttachment, attachErr := dockerClient.ContainerAttach(ctx, cont.ID, types.ContainerAttachOptions{Stdin: true, Stream: true})
 		if attachErr != nil {
@@ -592,8 +591,8 @@ func (e *executionImpl) executeContainer(ctx context.Context, dockerClient *clie
 	////////////////////////////////////////////////////////////////////////////
 	// START READING RESOURCES FROM CONTAINER stdout, AND PIPING ITS stderr
 	////////////////////////////////////////////////////////////////////////////
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		defer wg.Done()
 		logs, err := dockerClient.ContainerLogs(ctx, cont.ID, types.ContainerLogsOptions{
 			Follow:     true,
@@ -615,8 +614,8 @@ func (e *executionImpl) executeContainer(ctx context.Context, dockerClient *clie
 	////////////////////////////////////////////////////////////////////////////
 	// WAIT FOR CONTAINER TO EXIT
 	////////////////////////////////////////////////////////////////////////////
+	wg.Add(1)
 	go func() {
-		wg.Add(1)
 		defer wg.Done()
 		statusCh, errCh := dockerClient.ContainerWait(ctx, cont.ID, container.WaitConditionNotRunning)
 		var exit container.ContainerWaitOKBody
@@ -644,7 +643,6 @@ func (e *executionImpl) executeContainer(ctx context.Context, dockerClient *clie
 		}
 	}()
 
-	time.Sleep(1 * time.Second)
 	wg.Wait()
 	select {
 	case err := <-exitCh:

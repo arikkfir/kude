@@ -1,13 +1,17 @@
-package kude
+package functions
 
 import (
+	"context"
 	"fmt"
+	"github.com/arikkfir/kude/internal/stream"
+	. "github.com/arikkfir/kude/internal/stream/generate"
+	. "github.com/arikkfir/kude/internal/stream/processing"
+	. "github.com/arikkfir/kude/internal/stream/sink"
+	. "github.com/arikkfir/kude/internal/stream/types"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
-	"sigs.k8s.io/kustomize/kyaml/kio"
-	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 type Label struct {
@@ -38,20 +42,17 @@ func (f *Label) Invoke(_ *log.Logger, pwd, _, _ string, r io.Reader, w io.Writer
 		value = f.Value
 	}
 
-	pipeline := kio.Pipeline{
-		Inputs: []kio.Reader{&kio.ByteReader{Reader: r}},
-		Filters: []kio.Filter{
-			kio.FilterAll(
-				yaml.Tee(
-					SingleResourceTargeting(f.Includes, f.Excludes),
-					yaml.SetLabel(f.Name, value),
-				),
+	s := stream.NewStream().
+		Generate(FromReader(r)).
+		Process(
+			Tee(
+				K8sTargetingFilter(f.Includes, f.Excludes),
+				NodeTransformerOf(LabelK8sResource(f.Name, value)),
 			),
-		},
-		Outputs: []kio.Writer{kio.ByteWriter{Writer: w}},
-	}
-	if err := pipeline.Execute(); err != nil {
-		return fmt.Errorf("pipeline invocation failed: %w", err)
+		).
+		Sink(ToWriter(w))
+	if err := s.Execute(context.Background()); err != nil {
+		return fmt.Errorf("failed executing stream: %w", err)
 	}
 	return nil
 }

@@ -82,6 +82,31 @@ expected: |+
                 cpu: 100m
                 memory: 64Mi
   ---
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: podinfo
+  spec:
+    ports:
+      - name: http
+        port: 9898
+        protocol: TCP
+        targetPort: http
+      - name: grpc
+        port: 9999
+        protocol: TCP
+        targetPort: grpc
+    selector:
+      app: podinfo
+    type: ClusterIP
+  ---
+  apiVersion: kustomize.config.k8s.io/v1beta1
+  kind: Kustomization
+  resources:
+    - hpa.yaml
+    - deployment.yaml
+    - service.yaml
+  ---
   apiVersion: autoscaling/v2beta2
   kind: HorizontalPodAutoscaler
   metadata:
@@ -100,29 +125,3 @@ expected: |+
       apiVersion: apps/v1
       kind: Deployment
       name: podinfo
-  ---
-  apiVersion: kustomize.config.k8s.io/v1beta1
-  kind: Kustomization
-  metadata: {}
-  resources:
-    - hpa.yaml
-    - deployment.yaml
-    - service.yaml
-  ---
-  apiVersion: v1
-  kind: Service
-  metadata:
-    name: podinfo
-  spec:
-    ports:
-      - name: http
-        port: 9898
-        protocol: TCP
-        targetPort: http
-      - name: grpc
-        port: 9999
-        protocol: TCP
-        targetPort: grpc
-    selector:
-      app: podinfo
-    type: ClusterIP

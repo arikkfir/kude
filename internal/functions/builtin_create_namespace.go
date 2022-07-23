@@ -1,10 +1,13 @@
-package kude
+package functions
 
 import (
+	"context"
 	"fmt"
+	"github.com/arikkfir/kude/internal/stream"
+	. "github.com/arikkfir/kude/internal/stream/generate"
+	. "github.com/arikkfir/kude/internal/stream/sink"
 	"io"
 	"log"
-	"sigs.k8s.io/kustomize/kyaml/kio"
 	"strings"
 )
 
@@ -23,15 +26,11 @@ kind: Namespace
 metadata:
   name: ` + f.Name + `
 `
-	pipeline := kio.Pipeline{
-		Inputs: []kio.Reader{
-			&kio.ByteReader{Reader: strings.NewReader(namespace)},
-			&kio.ByteReader{Reader: r},
-		},
-		Filters: []kio.Filter{},
-		Outputs: []kio.Writer{kio.ByteWriter{Writer: w}},
-	}
-	if err := pipeline.Execute(); err != nil {
+	s := stream.NewStream().
+		Generate(FromReader(strings.NewReader(namespace))).
+		Generate(FromReader(r)).
+		Sink(ToWriter(w))
+	if err := s.Execute(context.Background()); err != nil {
 		return fmt.Errorf("pipeline invocation failed: %w", err)
 	}
 	return nil

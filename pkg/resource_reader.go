@@ -6,20 +6,20 @@ import (
 	"fmt"
 	"github.com/arikkfir/kude/internal"
 	"github.com/hashicorp/go-getter/v2"
+	"gopkg.in/yaml.v3"
+	"io"
 	"io/fs"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
-	"sigs.k8s.io/kustomize/kyaml/kio"
-	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 type resourceReader struct {
 	ctx    context.Context
 	pwd    string
 	logger *log.Logger
-	target chan *yaml.RNode
+	target chan *yaml.Node
 }
 
 func (r *resourceReader) Read(url string) error {
@@ -66,13 +66,19 @@ func (r *resourceReader) processFile(path string) error {
 	}
 
 	r.logger.Printf("Processing: %s", path)
-	reader := &kio.ByteReader{Reader: f, OmitReaderAnnotations: true}
-	nodes, err := reader.Read()
-	if err != nil {
-		return fmt.Errorf("failed to read '%s': %w", path, err)
-	}
-
-	for _, node := range nodes {
+	decoder := yaml.NewDecoder(f)
+	for {
+		node := &yaml.Node{}
+		if err := decoder.Decode(node); err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			} else {
+				return fmt.Errorf("failed to parse '%s': %w", path, err)
+			}
+		}
+		if node.Kind == yaml.DocumentNode {
+			node = node.Content[0]
+		}
 		r.target <- node
 	}
 	return nil
@@ -119,7 +125,7 @@ func (r *resourceReader) walkSimpleDirectory(path string, e fs.DirEntry, err err
 				return fmt.Errorf("failed to create execution for pipeline in '%s': %w", path, err)
 			}
 
-			if err := e.ExecuteToSink(r.ctx, r.target); err != nil {
+			if err := e.ExecuteToChannel(r.ctx, r.target); err != nil {
 				return fmt.Errorf("failed to execute pipeline in '%s': %w", path, err)
 			}
 			return fs.SkipDir

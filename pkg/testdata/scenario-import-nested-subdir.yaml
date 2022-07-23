@@ -47,22 +47,6 @@ resources:
               name: server
 
 expected: |+
-  apiVersion: v1
-  kind: Service
-  metadata:
-    annotations:
-      foo: bar
-    name: test
-  spec:
-    ports:
-      - name: http
-        port: 80
-        protocol: TCP
-        targetPort: http
-    selector:
-      app.kubernetes.io/component: test
-    type: ClusterIP
-  ---
   apiVersion: apps/v1
   kind: Deployment
   metadata:
@@ -81,3 +65,19 @@ expected: |+
         containers:
           - image: test/test
             name: server
+  ---
+  apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      foo: bar
+    name: test
+  spec:
+    ports:
+      - name: http
+        port: 80
+        protocol: TCP
+        targetPort: http
+    selector:
+      app.kubernetes.io/component: test
+    type: ClusterIP

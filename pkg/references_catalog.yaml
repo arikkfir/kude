@@ -2,17 +2,7 @@
   version: v1
   kind: Deployment
   field:
-    namePath:
-      - spec
-      - template
-      - spec
-      - containers
-      - '[image=.*]'
-      - env
-      - '[name=.*]'
-      - valueFrom
-      - configMapKeyRef
-      - name
+    path: $.spec.template.spec.containers.*.env.*.valueFrom.configMapKeyRef.name
     type:
       group: ""
       version: v1
@@ -21,17 +11,7 @@
   version: v1
   kind: Deployment
   field:
-    namePath:
-      - spec
-      - template
-      - spec
-      - containers
-      - '[image=.*]'
-      - env
-      - '[name=.*]'
-      - valueFrom
-      - secretKeyRef
-      - name
+    path: $.spec.template.spec.containers.*.env.*.valueFrom.secretKeyRef.name
     type:
       group: ""
       version: v1

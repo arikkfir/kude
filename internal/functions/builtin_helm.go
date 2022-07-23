@@ -1,10 +1,14 @@
-package kude
+package functions
 
 import (
 	"archive/tar"
 	"compress/gzip"
+	"context"
 	"errors"
 	"fmt"
+	"github.com/arikkfir/kude/internal/stream"
+	. "github.com/arikkfir/kude/internal/stream/generate"
+	. "github.com/arikkfir/kude/internal/stream/sink"
 	"io"
 	"log"
 	"net/http"
@@ -12,9 +16,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"sigs.k8s.io/kustomize/kyaml/kio"
 	"strings"
-	"time"
+	"sync"
 )
 
 type Helm struct {
@@ -58,48 +61,41 @@ func (f *Helm) Invoke(logger *log.Logger, pwd, cacheDir, tempDir string, r io.Re
 		panic(fmt.Errorf("failed to create pipe: %w", err))
 	}
 
-	cmd := exec.Command(helmFile, f.Args...)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = pw
-	cmd.Dir = pwd
-	logger.Printf("Starting process: %v", cmd.Args)
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed to start process: %w", err)
-	}
+	exitCh := make(chan error, 2)
+	wg := &sync.WaitGroup{}
 
-	exitCh := make(chan error)
+	wg.Add(1)
 	go func() {
-		pipeline := kio.Pipeline{
-			Inputs: []kio.Reader{
-				&kio.ByteReader{Reader: r},
-				&kio.ByteReader{Reader: pr},
-			},
-			Filters: []kio.Filter{},
-			Outputs: []kio.Writer{kio.ByteWriter{Writer: w}},
-		}
-		if err := pipeline.Execute(); err != nil {
-			exitCh <- fmt.Errorf("the YAML pipeline failed (did \"helm\" output valid YAML?): %w", err)
-		} else {
-			exitCh <- nil
+		defer wg.Done()
+		defer pw.Close()
+		cmd := exec.Command(helmFile, f.Args...)
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = pw
+		cmd.Dir = pwd
+		logger.Printf("Starting process: %v", cmd.Args)
+		if err := cmd.Run(); err != nil {
+			exitCh <- fmt.Errorf("process failed: %w", err)
 		}
 	}()
 
-	if err := cmd.Wait(); err != nil {
-		pw.Close()
-		return fmt.Errorf("process failed: %w", err)
-	} else {
-		pw.Close()
-	}
-
-	// TODO: seems CTRL+C doesn't stop container
-	for {
-		select {
-		case err := <-exitCh:
-			return err
-		default:
-			logger.Println("Still waiting for pipeline to finish...")
-			time.Sleep(time.Second)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		s := stream.NewStream().
+			Generate(FromReader(r)).
+			Generate(FromReader(pr)).
+			Sink(ToWriter(w))
+		if err := s.Execute(context.Background()); err != nil {
+			exitCh <- fmt.Errorf("failed executing stream: %w", err)
 		}
+	}()
+
+	wg.Wait()
+	select {
+	case err := <-exitCh:
+		return err
+	default:
+		return nil
 	}
 }
 

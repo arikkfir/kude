@@ -5,5 +5,9 @@ resources:
 steps:
   - image: ghcr.io/arikkfir/kude/functions/annotate
     config:
-      name: foo
-      value: bar
+      name: foo1
+      value: bar1
+  - image: ghcr.io/arikkfir/kude/functions/annotate
+    config:
+      name: foo2
+      value: bar2

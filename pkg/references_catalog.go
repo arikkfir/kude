@@ -3,8 +3,10 @@ package kude
 import (
 	_ "embed"
 	"fmt"
+	"github.com/arikkfir/kude/internal"
+	"github.com/vmware-labs/yaml-jsonpath/pkg/yamlpath"
+	"gopkg.in/yaml.v3"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
 //go:embed references_catalog.yaml
@@ -16,8 +18,9 @@ type referencePoint struct {
 	Version string `yaml:"version"`
 	Kind    string `yaml:"kind"`
 	Field   struct {
-		NamePath []string `yaml:"namePath"`
-		Type     struct {
+		path *yamlpath.Path `yaml:"-"`
+		Path string         `yaml:"path"`
+		Type struct {
 			Group   string `yaml:"group"`
 			Version string `yaml:"version"`
 			Kind    string `yaml:"kind"`
@@ -25,19 +28,11 @@ type referencePoint struct {
 	} `yaml:"field"`
 }
 
-func (r *referencePoint) resolve(resource *yaml.RNode, resourceNamespace string, renamedResources map[string]string) error {
-	rns := make([]*yaml.Node, 0)
-	pathMatcher := &yaml.PathMatcher{Path: r.Field.NamePath}
-	err := resource.PipeE(
-		pathMatcher,
-		yaml.FilterFunc(func(object *yaml.RNode) (*yaml.RNode, error) {
-			rns = append(rns, object.Content()[0])
-			return object, nil
-		}),
-	)
+func (r *referencePoint) resolve(resource *yaml.Node, renamedResources map[string]string) error {
+	matches, err := r.Field.path.Find(resource)
 	if err != nil {
-		return fmt.Errorf("error finding name paths: %w", err)
-	} else if len(rns) == 0 {
+		return fmt.Errorf("failed invoking YAML path '%s': %w", r.Field.Path, err)
+	} else if len(matches) == 0 {
 		return nil
 	}
 
@@ -47,12 +42,14 @@ func (r *referencePoint) resolve(resource *yaml.RNode, resourceNamespace string,
 	} else {
 		refFieldAPIVersion = r.Field.Type.Group + "/" + r.Field.Type.Version
 	}
+	namespace := internal.GetNamespace(resource)
 
-	for _, rn := range rns {
-		namespace := resourceNamespace
-		key := fmt.Sprintf("%s/%s/%s/%s", refFieldAPIVersion, r.Field.Type.Kind, namespace, rn.Value)
-		if newName, ok := renamedResources[key]; ok {
-			rn.SetString(newName)
+	for _, match := range matches {
+		if match.Value != "" {
+			key := fmt.Sprintf("%s/%s/%s/%s", refFieldAPIVersion, r.Field.Type.Kind, namespace, match.Value)
+			if newName, ok := renamedResources[key]; ok {
+				match.SetString(newName)
+			}
 		}
 	}
 	return nil
@@ -67,6 +64,11 @@ func init() {
 
 	refTypes := make(map[v1.GroupVersionKind][]referencePoint)
 	for _, rawRef := range rawRefs {
+		if path, err := yamlpath.NewPath(rawRef.Field.Path); err != nil {
+			panic(fmt.Errorf("failed compiling YAML path: %w", err))
+		} else {
+			rawRef.Field.path = path
+		}
 		gvk := v1.GroupVersionKind{Group: rawRef.Group, Version: rawRef.Version, Kind: rawRef.Kind}
 		if refs, ok := refTypes[gvk]; ok {
 			refTypes[gvk] = append(refs, rawRef)

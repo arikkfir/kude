@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/arikkfir/kude/pkg"
+	"github.com/arikkfir/kude/internal/functions"
 )
 
 func main() {
-	kude.InvokeFunction(&kude.Annotate{})
+	fi := functions.FunctionInvoker{Function: &functions.Annotate{}}
+	fi.MustInvoke()
 }

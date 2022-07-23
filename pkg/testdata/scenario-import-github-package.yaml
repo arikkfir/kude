@@ -1,5 +1,6 @@
 apiVersion: kude.kfirs.com/v1alpha1
 kind: Scenario
+skip: true
 pipeline:
   apiVersion: kude.kfirs.com/v1alpha2
   kind: Pipeline

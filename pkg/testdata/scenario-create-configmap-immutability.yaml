@@ -39,18 +39,18 @@ expected: |-
   apiVersion: v1
   data:
     foo: bar
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kude.kfirs.com/previous-name: implicitly-mutable-configmap
+    name: implicitly-mutable-configmap-62cdb7020ff920e5aa642c3d4066950dd1f01f4d
+  ---
+  apiVersion: v1
+  data:
+    foo: bar
   immutable: false
   kind: ConfigMap
   metadata:
     annotations:
       kude.kfirs.com/previous-name: mutable-configmap
     name: mutable-configmap-62cdb7020ff920e5aa642c3d4066950dd1f01f4d
-  ---
-  apiVersion: v1
-  data:
-    foo: bar
-  kind: ConfigMap
-  metadata:
-    annotations:
-      kude.kfirs.com/previous-name: implicitly-mutable-configmap
-    name: implicitly-mutable-configmap-62cdb7020ff920e5aa642c3d4066950dd1f01f4d

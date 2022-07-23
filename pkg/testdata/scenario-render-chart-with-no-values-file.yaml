@@ -20,29 +20,6 @@ pipeline:
           - --version=6.1.0
 
 expected: |+
-  apiVersion: v1
-  kind: Service
-  metadata:
-    labels:
-      app.kubernetes.io/managed-by: Helm
-      app.kubernetes.io/name: helm-remote-chart-podinfo
-      app.kubernetes.io/version: 6.1.0
-      helm.sh/chart: podinfo-6.1.0
-    name: helm-remote-chart-podinfo
-  spec:
-    ports:
-      - name: http
-        port: 9898
-        protocol: TCP
-        targetPort: http
-      - name: grpc
-        port: 9999
-        protocol: TCP
-        targetPort: grpc
-    selector:
-      app.kubernetes.io/name: helm-remote-chart-podinfo
-    type: ClusterIP
-  ---
   apiVersion: apps/v1
   kind: Deployment
   metadata:
@@ -126,3 +103,26 @@ expected: |+
         volumes:
           - emptyDir: {}
             name: data
+  ---
+  apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app.kubernetes.io/managed-by: Helm
+      app.kubernetes.io/name: helm-remote-chart-podinfo
+      app.kubernetes.io/version: 6.1.0
+      helm.sh/chart: podinfo-6.1.0
+    name: helm-remote-chart-podinfo
+  spec:
+    ports:
+      - name: http
+        port: 9898
+        protocol: TCP
+        targetPort: http
+      - name: grpc
+        port: 9999
+        protocol: TCP
+        targetPort: grpc
+    selector:
+      app.kubernetes.io/name: helm-remote-chart-podinfo
+    type: ClusterIP

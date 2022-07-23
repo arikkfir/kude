@@ -49,6 +49,14 @@ func TestScenarios(t *testing.T) {
 			t.Fatalf("failed to parse scenario at '%s': %v", name, err)
 		}
 
+		skipValue, err := rn.GetFieldValue("skip")
+		if err == nil {
+			if skipValue, ok := skipValue.(bool); ok && skipValue {
+				t.Log("Skipped")
+				return
+			}
+		}
+
 		if rn.GetApiVersion() != scenarioAPIVersion {
 			t.Fatalf("incorrect scenario API version at '%s'; expected '%s', got '%s'", name, scenarioAPIVersion, rn.GetApiVersion())
 		} else if rn.GetKind() != scenarioKind {

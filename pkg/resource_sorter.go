@@ -1,10 +1,8 @@
 package kude
 
 import (
-	"fmt"
-	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
-	"sigs.k8s.io/kustomize/kyaml/yaml"
-	"strconv"
+	"github.com/arikkfir/kude/internal"
+	"gopkg.in/yaml.v3"
 )
 
 const APIVersionV1 = "v1"
@@ -58,7 +56,7 @@ const KindStatefulSet = "StatefulSet"
 const KindStorageClass = "StorageClass"
 const KindValidatingWebhookConfiguration = "ValidatingWebhookConfiguration"
 
-type ByType []*yaml.RNode
+type ByType []*yaml.Node
 
 func (a ByType) Len() int {
 	return len(a)
@@ -71,14 +69,20 @@ func (a ByType) Swap(i, j int) {
 func (a ByType) Less(i, j int) bool {
 	this := a[i]
 	that := a[j]
-	thisScore := a.getScoreForKind(this)
-	thatScore := a.getScoreForKind(that)
-	return thisScore < thatScore
+	if getScoreForKind(this) == getScoreForKind(that) {
+		if internal.GetNamespace(this) == internal.GetNamespace(that) {
+			return internal.GetName(this) < internal.GetName(that)
+		} else {
+			return internal.GetNamespace(this) < internal.GetNamespace(that)
+		}
+	} else {
+		return getScoreForKind(this) < getScoreForKind(that)
+	}
 }
 
-func (a ByType) getScoreForKind(r *yaml.RNode) int {
-	apiVersion := r.GetApiVersion()
-	kind := r.GetKind()
+func getScoreForKind(r *yaml.Node) int {
+	apiVersion := internal.GetAPIVersion(r)
+	kind := internal.GetKind(r)
 	switch apiVersion + "/" + kind {
 	case APIVersionV1 + "/" + KindNode:
 		return -99
@@ -100,15 +104,15 @@ func (a ByType) getScoreForKind(r *yaml.RNode) int {
 		return -88
 	case APIVersionRBACV1 + "/" + KindRoleBinding:
 		return -87
+	case APIVersionV1 + "/" + KindConfigMap:
+		return -86
+	case APIVersionV1 + "/" + KindSecret:
+		return -85
+	case APIVersionAppsV1 + "/" + KindDeployment:
+		return -84
+	case APIVersionV1 + "/" + KindService:
+		return -83
 	default:
-		indexAnnValue, ok := r.GetAnnotations()[kioutil.IndexAnnotation]
-		if !ok {
-			panic(fmt.Errorf("no index annotation for '%s/%s' of type '%s/%s'", r.GetNamespace(), r.GetName(), apiVersion, kind))
-		}
-		index, err := strconv.Atoi(indexAnnValue)
-		if err != nil {
-			panic(fmt.Errorf("invalid index annotation for '%s/%s' of type '%s/%s': %w", r.GetNamespace(), r.GetName(), apiVersion, kind, err))
-		}
-		return index
+		return 0
 	}
 }
