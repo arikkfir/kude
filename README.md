@@ -164,6 +164,100 @@ spec:
     app.kubernetes.io/name: test
 ```
 
+## Configuration
+
+### Targeting
+
+Often in a pipeline, you would want a function to only apply its effects to a subset of the resources. For example, to
+add an Ingress annotation only to `Ingress` objects. This can be done like so:
+
+```yaml
+apiVersion: kude.kfirs.com/v1alpha2
+kind: Pipeline
+resources:
+  ...
+steps:
+  - image: ghcr.io/arikkfir/kude/functions/annotate
+    config:
+      name: foo1
+      value: bar1
+      includes:
+        - apiVersion: v1 # <-- only apply to objects in this API group
+          kind: Secret  # <-- and only apply to objects of type Secret
+      excludes:
+        - name: guarded-secret # <-- but do not annotate any object named "guarded-secret" 
+  - image: ghcr.io/arikkfir/kude/functions/annotate
+    config:
+      name: foo2
+      value: bar2
+      includes:
+        - apiVersion: v1 # <-- only apply to objects in this API group
+          kind: Secret  # <-- and only apply to objects of type Secret
+          name: my-secret # <-- and only apply to objects with this name 
+  - image: ghcr.io/arikkfir/kude/functions/annotate
+    config:
+      name: foo3
+      value: bar3
+      includes:
+        - apiVersion: v1 # <-- only apply to objects in this API group
+          kind: Secret  # <-- and only apply to objects of type Secret
+          name: my-secret # <-- and only apply to objects with this name 
+          namespace: my-namespace # <-- and only in this namespace
+  - image: ghcr.io/arikkfir/kude/functions/annotate
+    config:
+      name: foo4
+      value: bar4
+      includes:
+        - apiVersion: v1 # <-- only apply to objects in this API group
+          kind: Secret  # <-- and only apply to objects of type Secret
+          name: my-secret # <-- and only apply to objects with this name 
+          namespace: my-namespace # <-- and only in this namespace
+          labelSelector: app=my-app # <-- and only to objects with label 'app' equaling 'my-app'
+```
+
+Each one of the properties in the `includes` array is optional, but at least one of them must be specified. The format
+for the `excludes` array is the same as for `includes`, and also requires at least one of the properties to be
+specified.
+
+Targeting will only match objects that match at least one of the filters in the `includes` array, and do not match any
+of the filters in the `excludes` array. If the `includes` array is empty, all objects will be matched (but the
+`excludes` array will still be applied). If the `excludes` array is empty, only objects in the `includes` array will be
+matched (or all, if the `includes` array is empty as well).
+
+### Mounting local files
+
+Some function configuration values might need to come from local files, rather than hard-coded into the pipelines. This
+can be useful for reusing the same values across multiple functions or even multiple packages, as well as for providing
+secrets.
+
+Luckily Kude makes this super easy! Here's how:
+
+```yaml
+apiVersion: kude.kfirs.com/v1alpha2
+kind: Pipeline
+resources:
+  ...
+steps:
+  - image: ghcr.io/arikkfir/kude/functions/annotate
+    config:
+      name: purpose1
+      path: purpose.txt
+    mounts:
+      - purpose.txt # <-- local file called "purpose.txt" will be mounted to the function as "/workspace/purpose.txt"
+  - image: ghcr.io/arikkfir/kude/functions/annotate
+    config:
+      name: purpose2
+      path: a-file
+    mounts:
+      - purpose.txt:a-file # <-- local file called "purpose.txt" will be mounted to the function as "/workspace/a-file"
+  - image: ghcr.io/arikkfir/kude/functions/annotate
+    config:
+      name: purpose3
+      path: /tmp/my-file
+    mounts:
+      - purpose.txt:/tmp/my-file # <-- local file called "purpose.txt" will be mounted to the function as "/tmp/my-file"
+```
+
 ## Kude Functions
 
 The following functions are available:
