@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	testBigResourcesCount = 40_000
+	testBigResourcesCount = 10_000
 )
 
 //go:embed testdata/big_input_manifest.yaml
