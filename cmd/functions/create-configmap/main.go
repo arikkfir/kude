@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/arikkfir/kude/internal"
-	"github.com/arikkfir/kude/pkg"
+	"github.com/arikkfir/kude/internal/functions"
 )
 
 func main() {
-	pkg.InvokeFunction(&internal.CreateConfigMap{})
+	fi := functions.FunctionInvoker{Function: &functions.CreateConfigMap{}}
+	fi.MustInvoke()
 }

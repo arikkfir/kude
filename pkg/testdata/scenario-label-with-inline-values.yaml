@@ -1,0 +1,32 @@
+apiVersion: kude.kfirs.com/v1alpha1
+kind: Scenario
+pipeline:
+  apiVersion: kude.kfirs.com/v1alpha2
+  kind: Pipeline
+  resources:
+    - service-account.yaml
+  steps:
+    - image: ghcr.io/arikkfir/kude/functions/label
+      config:
+        name: numeric
+        value: "123"
+    - image: ghcr.io/arikkfir/kude/functions/label
+      config:
+        name: string
+        value: "abc"
+
+resources:
+  service-account.yaml: |-
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: test
+
+expected: |-
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    labels:
+      numeric: "123"
+      string: abc
+    name: test

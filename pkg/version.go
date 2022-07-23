@@ -1,4 +1,4 @@
-package pkg
+package kude
 
 import "github.com/blang/semver"
 
