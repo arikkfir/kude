@@ -3,9 +3,9 @@ package functions
 import (
 	"context"
 	"fmt"
-	"github.com/arikkfir/kude/internal/stream"
-	. "github.com/arikkfir/kude/internal/stream/generate"
-	. "github.com/arikkfir/kude/internal/stream/sink"
+	"github.com/arikkfir/gstream/pkg"
+	. "github.com/arikkfir/gstream/pkg/generate"
+	. "github.com/arikkfir/gstream/pkg/sink"
 	"io"
 	"log"
 	"strings"
