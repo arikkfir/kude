@@ -168,24 +168,24 @@ spec:
 
 ### Mounting local files
 
-Some function configuration values might need to come from local files, rather than hard-coded into the package
-pipelines. This can be useful for reusing the same values across multiple functions or even multiple packages, as well
-as for providing secrets. 
+Some function configuration values might need to come from local files, rather than hard-coded into the pipelines. This
+can be useful for reusing the same values across multiple functions or even multiple packages, as well as for providing
+secrets.
 
 Luckily Kude makes this super easy! Here's how:
 
 ```yaml
-apiVersion: kude.kfirs.com/v1alpha1
+apiVersion: kude.kfirs.com/v1alpha2
 kind: Pipeline
 resources:
   ...
-pipeline:
+steps:
   - image: ghcr.io/arikkfir/kude/functions/annotate
     config:
       name: purpose1
-      path: my-file
+      path: purpose.txt
     mounts:
-      - purpose.txt # <-- local file called "purpose.txt" will be mounted to the function as "/workspace/my-file"
+      - purpose.txt # <-- local file called "purpose.txt" will be mounted to the function as "/workspace/purpose.txt"
   - image: ghcr.io/arikkfir/kude/functions/annotate
     config:
       name: purpose2
@@ -194,7 +194,7 @@ pipeline:
       - purpose.txt:a-file # <-- local file called "purpose.txt" will be mounted to the function as "/workspace/a-file"
   - image: ghcr.io/arikkfir/kude/functions/annotate
     config:
-      name: purpose2
+      name: purpose3
       path: /tmp/my-file
     mounts:
       - purpose.txt:/tmp/my-file # <-- local file called "purpose.txt" will be mounted to the function as "/tmp/my-file"
