@@ -5,12 +5,12 @@ This function patches resources using a YQ expression that serves as both a sele
 ## Usage
 
 ```yaml
-apiVersion: kude.kfirs.com/v1alpha1
+apiVersion: kude.kfirs.com/v1alpha2
 kind: Pipeline
 resources:
   - deployment1.yaml
   - deployment2.yaml
-pipeline:
+steps:
   - image: ghcr.io/arikkfir/kude/functions/yq
     config:
       expr: |-

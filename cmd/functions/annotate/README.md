@@ -6,12 +6,12 @@ configuration or read from a file.
 ## Usage
 
 ```yaml
-apiVersion: kude.kfirs.com/v1alpha1
+apiVersion: kude.kfirs.com/v1alpha2
 kind: Pipeline
 resources:
   - deployment.yaml
   - service-accounts.yaml
-pipeline:
+steps:
   - image: ghcr.io/arikkfir/kude/functions/annotate
     config:
       name: purpose

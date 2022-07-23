@@ -1,0 +1,17 @@
+apiVersion: kude.kfirs.com/v1alpha1
+kind: Scenario
+pipeline:
+  apiVersion: kude.kfirs.com/v1alpha2
+  kind: Pipeline
+  steps:
+    - image: ghcr.io/arikkfir/kude/functions/create-configmap
+      config:
+        name: test
+        contents:
+          - key: foo
+            path: foo-file.txt
+      mounts:
+        - foo-file.txt
+
+expectedError: |-
+  pipeline error: failed executing step '001 // ghcr.io/arikkfir/kude/functions/create-configmap:.+': step error: .* \S+/foo-file.txt

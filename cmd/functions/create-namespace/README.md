@@ -5,11 +5,11 @@ This function generates a `Namespace` resource.
 ## Usage
 
 ```yaml
-apiVersion: kude.kfirs.com/v1alpha1
+apiVersion: kude.kfirs.com/v1alpha2
 kind: Pipeline
 resources:
   - deployment.yaml
-pipeline:
+steps:
   - image: ghcr.io/arikkfir/kude/functions/create-namespace
     config:
       name: my-namespace
