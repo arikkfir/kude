@@ -8,14 +8,16 @@ import (
 	. "github.com/arikkfir/gstream/pkg/processing"
 	. "github.com/arikkfir/gstream/pkg/sink"
 	. "github.com/arikkfir/gstream/pkg/types"
+	"github.com/arikkfir/kyaml/pkg"
+	"github.com/arikkfir/kyaml/pkg/kstream"
 	"io"
 	"log"
 )
 
 type SetNamespace struct {
-	Namespace string            `json:"namespace" yaml:"namespace"`
-	Includes  []TargetingFilter `json:"includes" yaml:"includes"`
-	Excludes  []TargetingFilter `json:"excludes" yaml:"excludes"`
+	Namespace string                `json:"namespace" yaml:"namespace"`
+	Includes  []pkg.TargetingFilter `json:"includes" yaml:"includes"`
+	Excludes  []pkg.TargetingFilter `json:"excludes" yaml:"excludes"`
 }
 
 func (f *SetNamespace) Invoke(_ *log.Logger, _, _, _ string, r io.Reader, w io.Writer) error {
@@ -27,8 +29,8 @@ func (f *SetNamespace) Invoke(_ *log.Logger, _, _, _ string, r io.Reader, w io.W
 		Generate(FromReader(r)).
 		Process(
 			Tee(
-				K8sTargetingFilter(f.Includes, f.Excludes),
-				NodeTransformerOf(SetK8sResourceNamespace(f.Namespace)),
+				kstream.FilterResource(f.Includes, f.Excludes),
+				NodeTransformerOf(kstream.SetResourceNamespace(f.Namespace)),
 			),
 		).
 		Sink(ToWriter(w))

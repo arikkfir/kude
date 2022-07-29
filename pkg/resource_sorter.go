@@ -1,8 +1,7 @@
 package kude
 
 import (
-	"github.com/arikkfir/kude/internal"
-	"gopkg.in/yaml.v3"
+	"github.com/arikkfir/kyaml/pkg"
 )
 
 const APIVersionV1 = "v1"
@@ -56,7 +55,7 @@ const KindStatefulSet = "StatefulSet"
 const KindStorageClass = "StorageClass"
 const KindValidatingWebhookConfiguration = "ValidatingWebhookConfiguration"
 
-type ByType []*yaml.Node
+type ByType []*pkg.RNode
 
 func (a ByType) Len() int {
 	return len(a)
@@ -70,19 +69,37 @@ func (a ByType) Less(i, j int) bool {
 	this := a[i]
 	that := a[j]
 	if getScoreForKind(this) == getScoreForKind(that) {
-		if internal.GetNamespace(this) == internal.GetNamespace(that) {
-			return internal.GetName(this) < internal.GetName(that)
+		if thisNS, err := this.GetNamespace(); err != nil {
+			panic(err)
+		} else if thatNS, err := that.GetNamespace(); err != nil {
+			panic(err)
+		} else if thisNS == thatNS {
+			if thisName, err := this.GetName(); err != nil {
+				panic(err)
+			} else if thatName, err := that.GetName(); err != nil {
+				panic(err)
+			} else {
+				return thisName < thatName
+			}
 		} else {
-			return internal.GetNamespace(this) < internal.GetNamespace(that)
+			return thisNS < thatNS
 		}
 	} else {
 		return getScoreForKind(this) < getScoreForKind(that)
 	}
 }
 
-func getScoreForKind(r *yaml.Node) int {
-	apiVersion := internal.GetAPIVersion(r)
-	kind := internal.GetKind(r)
+func getScoreForKind(rn *pkg.RNode) int {
+	apiVersion, err := rn.GetAPIVersion()
+	if err != nil {
+		panic(err)
+	}
+
+	kind, err := rn.GetKind()
+	if err != nil {
+		panic(err)
+	}
+
 	switch apiVersion + "/" + kind {
 	case APIVersionV1 + "/" + KindNode:
 		return -99

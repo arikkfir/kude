@@ -3,7 +3,7 @@ package kude
 import (
 	_ "embed"
 	"fmt"
-	"github.com/arikkfir/kude/internal"
+	"github.com/arikkfir/kyaml/pkg"
 	"github.com/vmware-labs/yaml-jsonpath/pkg/yamlpath"
 	"gopkg.in/yaml.v3"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,8 +28,8 @@ type referencePoint struct {
 	} `yaml:"field"`
 }
 
-func (r *referencePoint) resolve(resource *yaml.Node, renamedResources map[string]string) error {
-	matches, err := r.Field.path.Find(resource)
+func (r *referencePoint) resolve(rn *pkg.RNode, renamedResources map[string]string) error {
+	matches, err := r.Field.path.Find(rn.N)
 	if err != nil {
 		return fmt.Errorf("failed invoking YAML path '%s': %w", r.Field.Path, err)
 	} else if len(matches) == 0 {
@@ -42,8 +42,11 @@ func (r *referencePoint) resolve(resource *yaml.Node, renamedResources map[strin
 	} else {
 		refFieldAPIVersion = r.Field.Type.Group + "/" + r.Field.Type.Version
 	}
-	namespace := internal.GetNamespace(resource)
 
+	namespace, err := rn.GetNamespace()
+	if err != nil {
+		return fmt.Errorf("failed getting namespace: %w", err)
+	}
 	for _, match := range matches {
 		if match.Value != "" {
 			key := fmt.Sprintf("%s/%s/%s/%s", refFieldAPIVersion, r.Field.Type.Kind, namespace, match.Value)

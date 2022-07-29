@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"fmt"
 	"github.com/arikkfir/kude/internal"
+	"github.com/arikkfir/kyaml/pkg"
 	"github.com/hexops/gotextdiff"
 	"github.com/hexops/gotextdiff/myers"
 	"github.com/hexops/gotextdiff/span"
@@ -70,7 +71,7 @@ func TestBigResourcesInput(t *testing.T) {
 	t.Logf("Generating input resources YAML from %s resources", enPrinter.Sprint(testBigResourcesCount))
 	actualBuffer := &bytes.Buffer{}
 	actualEncoder := yaml.NewEncoder(actualBuffer)
-	expectedNodes := make([]*yaml.Node, 0, testBigResourcesCount)
+	expectedNodes := make([]*pkg.RNode, 0, testBigResourcesCount)
 	for i := 0; i < testBigResourcesCount; i++ {
 		yamlString := strings.ReplaceAll(testBigResourcesDeploymentPattern, "$$$", strconv.Itoa(i))
 		node := &yaml.Node{}
@@ -82,12 +83,13 @@ func TestBigResourcesInput(t *testing.T) {
 			t.Fatalf("failed to encode test input YAML: %v", err)
 		}
 
-		if err := internal.SetAnnotation(node, "foo1", "bar1"); err != nil {
+		rn := &pkg.RNode{N: node}
+		if err := rn.SetAnnotation("foo1", "bar1"); err != nil {
 			t.Fatalf("failed to set annotation foo1: %v", err)
-		} else if err := internal.SetAnnotation(node, "foo2", "bar2"); err != nil {
+		} else if err := rn.SetAnnotation("foo2", "bar2"); err != nil {
 			t.Fatalf("failed to set annotation foo2: %v", err)
 		} else {
-			expectedNodes = append(expectedNodes, node)
+			expectedNodes = append(expectedNodes, rn)
 		}
 	}
 	actualEncoder.Close()
@@ -97,8 +99,8 @@ func TestBigResourcesInput(t *testing.T) {
 	sort.Sort(ByType(expectedNodes))
 	expectedBuffer := &bytes.Buffer{}
 	expectedEncoder := yaml.NewEncoder(expectedBuffer)
-	for _, node := range expectedNodes {
-		if err := expectedEncoder.Encode(node); err != nil {
+	for _, rn := range expectedNodes {
+		if err := expectedEncoder.Encode(rn.N); err != nil {
 			t.Fatalf("failed to encode expected test YAML: %v", err)
 		}
 	}
