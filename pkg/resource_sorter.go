@@ -55,7 +55,7 @@ const KindStatefulSet = "StatefulSet"
 const KindStorageClass = "StorageClass"
 const KindValidatingWebhookConfiguration = "ValidatingWebhookConfiguration"
 
-type ByType []*pkg.RNode
+type ByType []*kyaml.RNode
 
 func (a ByType) Len() int {
 	return len(a)
@@ -89,7 +89,7 @@ func (a ByType) Less(i, j int) bool {
 	}
 }
 
-func getScoreForKind(rn *pkg.RNode) int {
+func getScoreForKind(rn *kyaml.RNode) int {
 	apiVersion, err := rn.GetAPIVersion()
 	if err != nil {
 		panic(err)

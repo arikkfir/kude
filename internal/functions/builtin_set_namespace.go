@@ -15,9 +15,9 @@ import (
 )
 
 type SetNamespace struct {
-	Namespace string                `json:"namespace" yaml:"namespace"`
-	Includes  []pkg.TargetingFilter `json:"includes" yaml:"includes"`
-	Excludes  []pkg.TargetingFilter `json:"excludes" yaml:"excludes"`
+	Namespace string                  `json:"namespace" yaml:"namespace"`
+	Includes  []kyaml.TargetingFilter `json:"includes" yaml:"includes"`
+	Excludes  []kyaml.TargetingFilter `json:"excludes" yaml:"excludes"`
 }
 
 func (f *SetNamespace) Invoke(_ *log.Logger, _, _, _ string, r io.Reader, w io.Writer) error {

@@ -17,11 +17,11 @@ import (
 )
 
 type Label struct {
-	Name     string                `json:"name" yaml:"name"`
-	Value    string                `json:"value" yaml:"value"`
-	Path     string                `json:"path" yaml:"path"`
-	Includes []pkg.TargetingFilter `json:"includes" yaml:"includes"`
-	Excludes []pkg.TargetingFilter `json:"excludes" yaml:"excludes"`
+	Name     string                  `json:"name" yaml:"name"`
+	Value    string                  `json:"value" yaml:"value"`
+	Path     string                  `json:"path" yaml:"path"`
+	Includes []kyaml.TargetingFilter `json:"includes" yaml:"includes"`
+	Excludes []kyaml.TargetingFilter `json:"excludes" yaml:"excludes"`
 }
 
 func (f *Label) Invoke(_ *log.Logger, pwd, _, _ string, r io.Reader, w io.Writer) error {

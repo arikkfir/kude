@@ -20,7 +20,7 @@ type resourceReader struct {
 	ctx    context.Context
 	pwd    string
 	logger *log.Logger
-	target chan *pkg.RNode
+	target chan *kyaml.RNode
 }
 
 func (r *resourceReader) Read(url string) error {
@@ -80,7 +80,7 @@ func (r *resourceReader) processFile(path string) error {
 		if node.Kind == yaml.DocumentNode {
 			node = node.Content[0]
 		}
-		r.target <- &pkg.RNode{N: node}
+		r.target <- &kyaml.RNode{N: node}
 	}
 	return nil
 }

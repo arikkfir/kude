@@ -6,7 +6,7 @@ replace github.com/hashicorp/go-getter/v2 v2.0.2 => github.com/arikkfir/go-gette
 
 require (
 	github.com/arikkfir/gstream v0.0.1-alpha03
-	github.com/arikkfir/kyaml v0.0.1-alpha02
+	github.com/arikkfir/kyaml v0.0.1-alpha03
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/docker/docker v20.10.14+incompatible
 	github.com/hashicorp/go-getter/v2 v2.0.2

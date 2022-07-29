@@ -28,7 +28,7 @@ type referencePoint struct {
 	} `yaml:"field"`
 }
 
-func (r *referencePoint) resolve(rn *pkg.RNode, renamedResources map[string]string) error {
+func (r *referencePoint) resolve(rn *kyaml.RNode, renamedResources map[string]string) error {
 	matches, err := r.Field.path.Find(rn.N)
 	if err != nil {
 		return fmt.Errorf("failed invoking YAML path '%s': %w", r.Field.Path, err)

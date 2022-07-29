@@ -71,7 +71,7 @@ func TestBigResourcesInput(t *testing.T) {
 	t.Logf("Generating input resources YAML from %s resources", enPrinter.Sprint(testBigResourcesCount))
 	actualBuffer := &bytes.Buffer{}
 	actualEncoder := yaml.NewEncoder(actualBuffer)
-	expectedNodes := make([]*pkg.RNode, 0, testBigResourcesCount)
+	expectedNodes := make([]*kyaml.RNode, 0, testBigResourcesCount)
 	for i := 0; i < testBigResourcesCount; i++ {
 		yamlString := strings.ReplaceAll(testBigResourcesDeploymentPattern, "$$$", strconv.Itoa(i))
 		node := &yaml.Node{}
@@ -83,7 +83,7 @@ func TestBigResourcesInput(t *testing.T) {
 			t.Fatalf("failed to encode test input YAML: %v", err)
 		}
 
-		rn := &pkg.RNode{N: node}
+		rn := &kyaml.RNode{N: node}
 		if err := rn.SetAnnotation("foo1", "bar1"); err != nil {
 			t.Fatalf("failed to set annotation foo1: %v", err)
 		} else if err := rn.SetAnnotation("foo2", "bar2"); err != nil {

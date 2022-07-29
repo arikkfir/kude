@@ -60,8 +60,8 @@ github.com/arikkfir/go-getter/v2 v2.0.3-0.20220414203320-e7578c2df2b7 h1:CbLL9Wb
 github.com/arikkfir/go-getter/v2 v2.0.3-0.20220414203320-e7578c2df2b7/go.mod h1:w65fE5glbccYjndAuj1kA5lnVBGZYEaH0e5qA1kpIks=
 github.com/arikkfir/gstream v0.0.1-alpha03 h1:CwU58wSywh/R7ztlWLBDaBjQSY+GmxQjd1GCouSqZRg=
 github.com/arikkfir/gstream v0.0.1-alpha03/go.mod h1:cW9kDIA9z2V9Rj3H/b9xQ8VeeF2YlJhMvH1rCu/Fdk4=
-github.com/arikkfir/kyaml v0.0.1-alpha02 h1:2O3xTcT65I4Tbg1eycVnnazgIRCfsxPkOJIb5uOhLS0=
-github.com/arikkfir/kyaml v0.0.1-alpha02/go.mod h1:MPEMBr459pPfgBOD1vPqA+pN4DTyn5GiG0lTZu5eZqg=
+github.com/arikkfir/kyaml v0.0.1-alpha03 h1:u9HiWC8rQD/LIaSBhPjQyGr0gGsGbmcpNDLJhsEoKSo=
+github.com/arikkfir/kyaml v0.0.1-alpha03/go.mod h1:MPEMBr459pPfgBOD1vPqA+pN4DTyn5GiG0lTZu5eZqg=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
 github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da/go.mod h1:Q73ZrmVTwzkszR9V5SSuryQ31EELlFMUz1kKyl939pY=
 github.com/armon/go-radix v0.0.0-20180808171621-7fddfc383310/go.mod h1:ufUuZ+zHj4x4TnLV4JWEpy2hxWSpsRywHrMgIH9cCH8=

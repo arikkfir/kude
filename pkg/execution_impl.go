@@ -41,7 +41,7 @@ const (
 	defaultInMemoryResourceCapacity = 1_000
 )
 
-func GetResourcePreviousName(r *pkg.RNode) string {
+func GetResourcePreviousName(r *kyaml.RNode) string {
 	value, err := r.GetAnnotation(PreviousNameAnnotationName)
 	if err != nil {
 		panic(err)
@@ -75,7 +75,7 @@ func (e *executionImpl) GetPipeline() Pipeline  { return e.pipeline }
 func (e *executionImpl) GetLogger() *log.Logger { return e.logger }
 
 func (e *executionImpl) ExecuteToWriter(ctx context.Context, w io.Writer) error {
-	target := make(chan *pkg.RNode, 5000)
+	target := make(chan *kyaml.RNode, 5000)
 	exitCh := make(chan error, 1000)
 	wg := &sync.WaitGroup{}
 
@@ -115,7 +115,7 @@ func (e *executionImpl) ExecuteToWriter(ctx context.Context, w io.Writer) error 
 	}
 }
 
-func (e *executionImpl) ExecuteToChannel(ctx context.Context, target chan *pkg.RNode) error {
+func (e *executionImpl) ExecuteToChannel(ctx context.Context, target chan *kyaml.RNode) error {
 	timer := prometheus.NewTimer(executionsDurationHistogramMetric)
 	defer timer.ObserveDuration()
 
@@ -154,7 +154,7 @@ func (e *executionImpl) ExecuteToChannel(ctx context.Context, target chan *pkg.R
 	// pushed into the "resources" channel, to be consumed downstream.
 	////////////////////////////////////////////////////////////////////////////
 	rwg := sync.WaitGroup{}
-	resources := make(chan *pkg.RNode, 5000)
+	resources := make(chan *kyaml.RNode, 5000)
 	for _, r := range e.pipeline.GetResources() {
 		rwg.Add(1)
 		go func(path string) {
@@ -189,9 +189,9 @@ func (e *executionImpl) ExecuteToChannel(ctx context.Context, target chan *pkg.R
 	////////////////////////////////////////////////////////////////////////////
 	stepInput := resources
 	for _, step := range e.pipeline.GetSteps() {
-		stepOutput := make(chan *pkg.RNode, 5000)
+		stepOutput := make(chan *kyaml.RNode, 5000)
 		wg.Add(1)
-		go func(step Step, input chan *pkg.RNode, output chan *pkg.RNode) {
+		go func(step Step, input chan *kyaml.RNode, output chan *kyaml.RNode) {
 			defer wg.Done()
 			defer close(output)
 
@@ -228,9 +228,9 @@ func (e *executionImpl) ExecuteToChannel(ctx context.Context, target chan *pkg.R
 	// Additionally, the resource will be cleaned from internal annotations.
 	////////////////////////////////////////////////////////////////////////////
 	renamedResources := make(map[string]string)
-	collatedResources := make([]*pkg.RNode, 0, defaultInMemoryResourceCapacity)
+	collatedResources := make([]*kyaml.RNode, 0, defaultInMemoryResourceCapacity)
 	wg.Add(1)
-	go func(input chan *pkg.RNode) {
+	go func(input chan *kyaml.RNode) {
 		defer wg.Done()
 		for {
 			rn, ok := <-input
@@ -311,7 +311,7 @@ func (e *executionImpl) ExecuteToChannel(ctx context.Context, target chan *pkg.R
 	return nil
 }
 
-func (e *executionImpl) ExecuteStep(ctx context.Context, dockerClient *client.Client, cacheDir string, tempDir string, step Step, input chan *pkg.RNode, output chan *pkg.RNode) error {
+func (e *executionImpl) ExecuteStep(ctx context.Context, dockerClient *client.Client, cacheDir string, tempDir string, step Step, input chan *kyaml.RNode, output chan *kyaml.RNode) error {
 	logger := internal.NamedLogger(e.logger, step.GetID())
 	logger.Printf("Executing step '%s'", step.GetName())
 
@@ -395,7 +395,7 @@ func (e *executionImpl) ExecuteStep(ctx context.Context, dockerClient *client.Cl
 				return
 			}
 			// TODO: call rn.IsValid()
-			output <- &pkg.RNode{N: node}
+			output <- &kyaml.RNode{N: node}
 		}
 	}()
 

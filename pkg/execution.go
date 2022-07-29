@@ -13,7 +13,7 @@ type Execution interface {
 	GetPipeline() Pipeline
 	GetLogger() *log.Logger
 	ExecuteToWriter(ctx context.Context, w io.Writer) error
-	ExecuteToChannel(ctx context.Context, target chan *pkg.RNode) error
+	ExecuteToChannel(ctx context.Context, target chan *kyaml.RNode) error
 }
 
 var (

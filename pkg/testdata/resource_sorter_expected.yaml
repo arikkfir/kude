@@ -1,0 +1,158 @@
+apiVersion: v1
+kind: Node
+metadata:
+  name: node1
+---
+apiVersion: v1
+kind: Node
+metadata:
+  name: node2
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: mwh-config1
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: mwh-config2
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: vwh-config1
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: vwh-config2
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: crd1
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: crd2
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ns1
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ns10
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ns2
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sa2
+  namespace: ns1
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sa1
+  namespace: ns2
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cr1
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cr2
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: r2
+  namespace: ns1
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: r1
+  namespace: ns2
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: crb1
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: crb2
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rb2
+  namespace: ns1
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rb1
+  namespace: ns2
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm2
+  namespace: ns1
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm1
+  namespace: ns2
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: s2
+  namespace: ns1
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: s1
+  namespace: ns2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: d2
+  namespace: ns1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: d1
+  namespace: ns2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: s2
+  namespace: ns1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: s1
+  namespace: ns2
