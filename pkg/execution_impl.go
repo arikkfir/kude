@@ -19,7 +19,6 @@ import (
 	"gopkg.in/yaml.v3"
 	"io"
 	"io/ioutil"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"log"
 	"os"
 	"path/filepath"
@@ -285,22 +284,8 @@ func (e *executionImpl) ExecuteToChannel(ctx context.Context, target chan *kyaml
 	////////////////////////////////////////////////////////////////////////////
 	e.logger.Printf("Resolving references in %d resources...", len(collatedResources))
 	for i, rn := range collatedResources {
-		apiGroup, apiGroupVersion, err := rn.GetAPIGroupAndVersion()
-		if err != nil {
-			return fmt.Errorf("failed to get API group and version for resource: %w", err)
-		}
-		kind, err := rn.GetKind()
-		if err != nil {
-			return fmt.Errorf("failed to get kind for resource: %w", err)
-		}
-		gvk := v1.GroupVersionKind{Group: apiGroup, Version: apiGroupVersion, Kind: kind}
-		if refTypes, ok := referencesCatalog[gvk]; ok {
-			for _, refType := range refTypes {
-				err := refType.resolve(rn, renamedResources)
-				if err != nil {
-					return fmt.Errorf("failed resolving references in node: %w", err)
-				}
-			}
+		if err := referencesCatalog.resolve(rn, renamedResources); err != nil {
+			return fmt.Errorf("failed resolving references in resource %d: %w", i, err)
 		}
 		resolvedResourcesCounter.Inc()
 		target <- rn
