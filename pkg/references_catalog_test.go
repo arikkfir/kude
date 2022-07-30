@@ -17,7 +17,16 @@ func TestReferencesCatalog(t *testing.T) {
     type:
       group: ""
       version: v1
-      kind: ConfigMap`
+      kind: ConfigMap
+- group: apps
+  version: v1
+  kind: Deployment
+  field:
+    path: $.metadata.annotations.parent
+    type:
+      group: apps
+      version: v1
+      kind: Deployment`
 	c := &catalog{}
 	if err := c.loadFrom(strings.NewReader(catalogYAML)); err != nil {
 		t.Fatalf("failed loading catalog: %v", err)
@@ -30,7 +39,8 @@ kind: Deployment
 metadata:
   annotations:
     foo: bar
-  name: d
+    parent: d2
+  name: d1
   namespace: ns`
 	if err := yaml.Unmarshal([]byte(inputYAML), n); err != nil {
 		t.Fatalf("failed decoding input YAML: %v", err)
@@ -38,7 +48,8 @@ metadata:
 
 	rn := &kyaml.RNode{N: n}
 	renamed := map[string]string{
-		"v1/ConfigMap/ns/bar": "bar-123",
+		"apps/v1/Deployment/ns/d2": "d2-123",
+		"v1/ConfigMap/ns/bar":      "bar-123",
 	}
 	if err := c.resolve(rn, renamed); err != nil {
 		t.Fatalf("failed resolving references: %v", err)
@@ -46,6 +57,10 @@ metadata:
 		t.Fatalf("failed getting 'foo' annotation: %v", err)
 	} else if foo != "bar-123" {
 		t.Fatalf("unexpected 'foo' annotation value: %s", foo)
+	} else if parent, err := rn.GetAnnotation("parent"); err != nil {
+		t.Fatalf("failed getting 'parent' annotation: %v", err)
+	} else if parent != "d2-123" {
+		t.Fatalf("unexpected 'parent' annotation value: %s", parent)
 	}
 
 	delete(renamed, "v1/ConfigMap/ns/bar")
