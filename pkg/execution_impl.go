@@ -31,7 +31,6 @@ import (
 const (
 	// PreviousNameAnnotationName is the name of the annotation that is used to provide the friendly resource name of
 	// a resource that has been renamed for uniqueness.
-	// TODO: ensure all places use this constant
 	PreviousNameAnnotationName = "kude.kfirs.com/previous-name"
 
 	// defaultInMemoryResourceCapacity is the default capacity of the in-memory resources buffer used during a pipeline
@@ -39,15 +38,6 @@ const (
 	// to support resource references resolving - which requires reading all resources into memory.
 	defaultInMemoryResourceCapacity = 1_000
 )
-
-func GetResourcePreviousName(r *kyaml.RNode) string {
-	value, err := r.GetAnnotation(PreviousNameAnnotationName)
-	if err != nil {
-		panic(err)
-	} else {
-		return value
-	}
-}
 
 var (
 	// containerStopTimeout is the maximum amount of time given for a container to stop, when instructed to.
@@ -238,10 +228,16 @@ func (e *executionImpl) ExecuteToChannel(ctx context.Context, target chan *kyaml
 				if err != nil {
 					exitCh <- fmt.Errorf("failed getting API version for resource: %w", err)
 					return
+				} else if apiVersion == "" {
+					exitCh <- fmt.Errorf("failed getting API version for resource: apiVersion is missing or empty")
+					return
 				}
 				kind, err := rn.GetKind()
 				if err != nil {
 					exitCh <- fmt.Errorf("failed getting kind for resource: %w", err)
+					return
+				} else if kind == "" {
+					exitCh <- fmt.Errorf("failed getting kind for resource: kind is missing or empty")
 					return
 				}
 				namespace, err := rn.GetNamespace()
@@ -254,7 +250,10 @@ func (e *executionImpl) ExecuteToChannel(ctx context.Context, target chan *kyaml
 					exitCh <- fmt.Errorf("failed getting name for resource: %w", err)
 					return
 				}
-				if previousName := GetResourcePreviousName(rn); previousName != "" {
+				if previousName, err := GetResourcePreviousName(rn); err != nil {
+					exitCh <- fmt.Errorf("failed getting previous name for resource: %w", err)
+					return
+				} else if previousName != "" {
 					key := fmt.Sprintf("%s/%s/%s/%s", apiVersion, kind, namespace, previousName)
 					renamedResources[key] = name
 				}
