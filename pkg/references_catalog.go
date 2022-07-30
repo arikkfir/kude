@@ -100,6 +100,8 @@ func (c *catalog) resolve(rn *kyaml.RNode, renamedResources map[string]string) e
 	kind, err := rn.GetKind()
 	if err != nil {
 		return fmt.Errorf("failed to get kind for resource: %w", err)
+	} else if kind == "" {
+		return fmt.Errorf("failed to get kind for resource: empty or no 'kind' property")
 	}
 	gvk := v1.GroupVersionKind{Group: apiGroup, Version: apiGroupVersion, Kind: kind}
 	if refTypes, ok := c.targets[gvk]; ok {
