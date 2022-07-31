@@ -5,7 +5,8 @@ go 1.18
 replace github.com/hashicorp/go-getter/v2 v2.0.2 => github.com/arikkfir/go-getter/v2 v2.0.3-0.20220414203320-e7578c2df2b7
 
 require (
-	github.com/arikkfir/gstream v0.0.1-alpha02
+	github.com/arikkfir/gstream v0.0.1-alpha03
+	github.com/arikkfir/kyaml v0.0.1-alpha03
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/docker/docker v20.10.14+incompatible
 	github.com/hashicorp/go-getter/v2 v2.0.2
@@ -78,7 +79,8 @@ require (
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	golang.org/x/net v0.0.0-20220412020605-290c469a71a5 // indirect
-	golang.org/x/sys v0.0.0-20220701225701-179beb0bd1a1 // indirect
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
+	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 	google.golang.org/genproto v0.0.0-20220414192740-2d67ff6cf2b4 // indirect
 	google.golang.org/grpc v1.45.0 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect

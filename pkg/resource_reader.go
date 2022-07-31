@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/arikkfir/kude/internal"
+	"github.com/arikkfir/kyaml/pkg"
 	"github.com/hashicorp/go-getter/v2"
 	"gopkg.in/yaml.v3"
 	"io"
@@ -19,7 +20,7 @@ type resourceReader struct {
 	ctx    context.Context
 	pwd    string
 	logger *log.Logger
-	target chan *yaml.Node
+	target chan *kyaml.RNode
 }
 
 func (r *resourceReader) Read(url string) error {
@@ -79,7 +80,7 @@ func (r *resourceReader) processFile(path string) error {
 		if node.Kind == yaml.DocumentNode {
 			node = node.Content[0]
 		}
-		r.target <- node
+		r.target <- &kyaml.RNode{N: node}
 	}
 	return nil
 }

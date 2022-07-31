@@ -2,9 +2,9 @@ package kude
 
 import (
 	"context"
+	"github.com/arikkfir/kyaml/pkg"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"gopkg.in/yaml.v3"
 	"io"
 	"log"
 )
@@ -13,7 +13,7 @@ type Execution interface {
 	GetPipeline() Pipeline
 	GetLogger() *log.Logger
 	ExecuteToWriter(ctx context.Context, w io.Writer) error
-	ExecuteToChannel(ctx context.Context, target chan *yaml.Node) error
+	ExecuteToChannel(ctx context.Context, target chan *kyaml.RNode) error
 }
 
 var (

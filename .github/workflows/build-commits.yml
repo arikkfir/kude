@@ -106,7 +106,7 @@ jobs:
                   -vet=off \
                   -race \
                   -shuffle ${SHUFFLE_SEED} \
-                  -coverprofile=coverage.out \
+                  -coverprofile=coverage.txt \
                   -covermode=atomic \
                   ./...
         env:

@@ -2,13 +2,13 @@ package kude
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/arikkfir/kude/internal"
 	"github.com/arikkfir/kude/internal/functions"
+	"github.com/arikkfir/kyaml/pkg"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
@@ -19,7 +19,6 @@ import (
 	"gopkg.in/yaml.v3"
 	"io"
 	"io/ioutil"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"log"
 	"os"
 	"path/filepath"
@@ -32,7 +31,6 @@ import (
 const (
 	// PreviousNameAnnotationName is the name of the annotation that is used to provide the friendly resource name of
 	// a resource that has been renamed for uniqueness.
-	// TODO: ensure all places use this constant
 	PreviousNameAnnotationName = "kude.kfirs.com/previous-name"
 
 	// defaultInMemoryResourceCapacity is the default capacity of the in-memory resources buffer used during a pipeline
@@ -66,7 +64,7 @@ func (e *executionImpl) GetPipeline() Pipeline  { return e.pipeline }
 func (e *executionImpl) GetLogger() *log.Logger { return e.logger }
 
 func (e *executionImpl) ExecuteToWriter(ctx context.Context, w io.Writer) error {
-	target := make(chan *yaml.Node, 5000)
+	target := make(chan *kyaml.RNode, 5000)
 	exitCh := make(chan error, 1000)
 	wg := &sync.WaitGroup{}
 
@@ -76,9 +74,9 @@ func (e *executionImpl) ExecuteToWriter(ctx context.Context, w io.Writer) error 
 		encoder := yaml.NewEncoder(w)
 		defer encoder.Close()
 		for {
-			node, ok := <-target
+			rn, ok := <-target
 			if ok {
-				if err := encoder.Encode(node); err != nil {
+				if err := encoder.Encode(rn.N); err != nil {
 					exitCh <- fmt.Errorf("failed to encode node to process stdout: %w", err)
 					return
 				}
@@ -106,7 +104,7 @@ func (e *executionImpl) ExecuteToWriter(ctx context.Context, w io.Writer) error 
 	}
 }
 
-func (e *executionImpl) ExecuteToChannel(ctx context.Context, target chan *yaml.Node) error {
+func (e *executionImpl) ExecuteToChannel(ctx context.Context, target chan *kyaml.RNode) error {
 	timer := prometheus.NewTimer(executionsDurationHistogramMetric)
 	defer timer.ObserveDuration()
 
@@ -145,7 +143,7 @@ func (e *executionImpl) ExecuteToChannel(ctx context.Context, target chan *yaml.
 	// pushed into the "resources" channel, to be consumed downstream.
 	////////////////////////////////////////////////////////////////////////////
 	rwg := sync.WaitGroup{}
-	resources := make(chan *yaml.Node, 5000)
+	resources := make(chan *kyaml.RNode, 5000)
 	for _, r := range e.pipeline.GetResources() {
 		rwg.Add(1)
 		go func(path string) {
@@ -180,9 +178,9 @@ func (e *executionImpl) ExecuteToChannel(ctx context.Context, target chan *yaml.
 	////////////////////////////////////////////////////////////////////////////
 	stepInput := resources
 	for _, step := range e.pipeline.GetSteps() {
-		stepOutput := make(chan *yaml.Node, 5000)
+		stepOutput := make(chan *kyaml.RNode, 5000)
 		wg.Add(1)
-		go func(step Step, input chan *yaml.Node, output chan *yaml.Node) {
+		go func(step Step, input chan *kyaml.RNode, output chan *kyaml.RNode) {
 			defer wg.Done()
 			defer close(output)
 
@@ -219,22 +217,47 @@ func (e *executionImpl) ExecuteToChannel(ctx context.Context, target chan *yaml.
 	// Additionally, the resource will be cleaned from internal annotations.
 	////////////////////////////////////////////////////////////////////////////
 	renamedResources := make(map[string]string)
-	collatedResources := make([]*yaml.Node, 0, defaultInMemoryResourceCapacity)
+	collatedResources := make([]*kyaml.RNode, 0, defaultInMemoryResourceCapacity)
 	wg.Add(1)
-	go func(input chan *yaml.Node) {
+	go func(input chan *kyaml.RNode) {
 		defer wg.Done()
 		for {
-			node, ok := <-input
+			rn, ok := <-input
 			if ok {
-				if previousName := internal.GetPreviousName(node); previousName != "" {
-					apiVersion := internal.GetAPIVersion(node)
-					kind := internal.GetKind(node)
-					namespace := internal.GetNamespace(node)
-					name := internal.GetName(node)
+				apiVersion, err := rn.GetAPIVersion()
+				if err != nil {
+					exitCh <- fmt.Errorf("failed getting API version for resource: %w", err)
+					return
+				} else if apiVersion == "" {
+					exitCh <- fmt.Errorf("failed getting API version for resource: apiVersion is missing or empty")
+					return
+				}
+				kind, err := rn.GetKind()
+				if err != nil {
+					exitCh <- fmt.Errorf("failed getting kind for resource: %w", err)
+					return
+				} else if kind == "" {
+					exitCh <- fmt.Errorf("failed getting kind for resource: kind is missing or empty")
+					return
+				}
+				namespace, err := rn.GetNamespace()
+				if err != nil {
+					exitCh <- fmt.Errorf("failed getting namespace for resource: %w", err)
+					return
+				}
+				name, err := rn.GetName()
+				if err != nil {
+					exitCh <- fmt.Errorf("failed getting name for resource: %w", err)
+					return
+				}
+				if previousName, err := GetResourcePreviousName(rn); err != nil {
+					exitCh <- fmt.Errorf("failed getting previous name for resource: %w", err)
+					return
+				} else if previousName != "" {
 					key := fmt.Sprintf("%s/%s/%s/%s", apiVersion, kind, namespace, previousName)
 					renamedResources[key] = name
 				}
-				collatedResources = append(collatedResources, node)
+				collatedResources = append(collatedResources, rn)
 				collectedResourcesCounter.Inc()
 			} else {
 				break
@@ -258,28 +281,21 @@ func (e *executionImpl) ExecuteToChannel(ctx context.Context, target chan *yaml.
 	////////////////////////////////////////////////////////////////////////////
 	// PIPE RESOURCES TO TARGET SINK
 	////////////////////////////////////////////////////////////////////////////
-	e.logger.Printf("Processing %d resources...", len(collatedResources))
-	for i, n := range collatedResources {
-		if i%1000 == 0 {
-			e.logger.Printf("  Processed %d resources...", i)
-		}
-		apiGroup, apiGroupVersion := internal.GetAPIGroupAndVersion(n)
-		gvk := v1.GroupVersionKind{Group: apiGroup, Version: apiGroupVersion, Kind: internal.GetKind(n)}
-		if refTypes, ok := referencesCatalog[gvk]; ok {
-			for _, refType := range refTypes {
-				err := refType.resolve(n, renamedResources)
-				if err != nil {
-					return fmt.Errorf("failed resolving references in node: %w", err)
-				}
-			}
+	e.logger.Printf("Resolving references in %d resources...", len(collatedResources))
+	for i, rn := range collatedResources {
+		if err := referencesCatalog.resolve(rn, renamedResources); err != nil {
+			return fmt.Errorf("failed resolving references in resource %d: %w", i, err)
 		}
 		resolvedResourcesCounter.Inc()
-		target <- n
+		target <- rn
+		if i > 0 && i%1000 == 0 {
+			e.logger.Printf("  Resolved %d resources...", i)
+		}
 	}
 	return nil
 }
 
-func (e *executionImpl) ExecuteStep(ctx context.Context, dockerClient *client.Client, cacheDir string, tempDir string, step Step, input chan *yaml.Node, output chan *yaml.Node) error {
+func (e *executionImpl) ExecuteStep(ctx context.Context, dockerClient *client.Client, cacheDir string, tempDir string, step Step, input chan *kyaml.RNode, output chan *kyaml.RNode) error {
 	logger := internal.NamedLogger(e.logger, step.GetID())
 	logger.Printf("Executing step '%s'", step.GetName())
 
@@ -303,10 +319,10 @@ func (e *executionImpl) ExecuteStep(ctx context.Context, dockerClient *client.Cl
 		encoder.SetIndent(2)
 		defer encoder.Close()
 		for {
-			node, ok := <-input
+			rn, ok := <-input
 			if ok {
 				stepInputResourcesCounter.WithLabelValues(step.GetID(), step.GetName()).Inc()
-				if err := encoder.Encode(node); err != nil {
+				if err := encoder.Encode(rn.N); err != nil {
 					exitCh <- fmt.Errorf("failed encoding resource into container stdin: %w", err)
 					return
 				}
@@ -362,30 +378,8 @@ func (e *executionImpl) ExecuteStep(ctx context.Context, dockerClient *client.Cl
 				exitCh <- fmt.Errorf("unexpected YAML - expected object, got: %v", node.Kind)
 				return
 			}
-
-			if apiVersion := internal.GetAPIVersion(node); apiVersion == "" {
-				nodeYAML := &bytes.Buffer{}
-				encoder := yaml.NewEncoder(nodeYAML)
-				encoder.SetIndent(2)
-				if err := encoder.Encode(node); err != nil {
-					logger.Printf("Failed converting an output node to YAML: %v", err)
-				}
-				encoder.Close()
-				exitCh <- fmt.Errorf("resource has no apiVersion:\n%s\n===", nodeYAML.String())
-				return
-			}
-			if kind := internal.GetKind(node); kind == "" {
-				nodeYAML := &bytes.Buffer{}
-				encoder := yaml.NewEncoder(nodeYAML)
-				encoder.SetIndent(2)
-				if err := encoder.Encode(node); err != nil {
-					logger.Printf("Failed converting an output node to YAML: %v", err)
-				}
-				encoder.Close()
-				exitCh <- fmt.Errorf("resource has no kind:\n%s\n===", nodeYAML.String())
-				return
-			}
-			output <- node
+			// TODO: call rn.IsValid()
+			output <- &kyaml.RNode{N: node}
 		}
 	}()
 

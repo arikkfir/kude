@@ -8,6 +8,8 @@ import (
 	. "github.com/arikkfir/gstream/pkg/processing"
 	. "github.com/arikkfir/gstream/pkg/sink"
 	. "github.com/arikkfir/gstream/pkg/types"
+	"github.com/arikkfir/kyaml/pkg"
+	"github.com/arikkfir/kyaml/pkg/kstream"
 	"io"
 	"log"
 	"os"
@@ -15,11 +17,11 @@ import (
 )
 
 type Label struct {
-	Name     string            `json:"name" yaml:"name"`
-	Value    string            `json:"value" yaml:"value"`
-	Path     string            `json:"path" yaml:"path"`
-	Includes []TargetingFilter `json:"includes" yaml:"includes"`
-	Excludes []TargetingFilter `json:"excludes" yaml:"excludes"`
+	Name     string                  `json:"name" yaml:"name"`
+	Value    string                  `json:"value" yaml:"value"`
+	Path     string                  `json:"path" yaml:"path"`
+	Includes []kyaml.TargetingFilter `json:"includes" yaml:"includes"`
+	Excludes []kyaml.TargetingFilter `json:"excludes" yaml:"excludes"`
 }
 
 func (f *Label) Invoke(_ *log.Logger, pwd, _, _ string, r io.Reader, w io.Writer) error {
@@ -46,8 +48,8 @@ func (f *Label) Invoke(_ *log.Logger, pwd, _, _ string, r io.Reader, w io.Writer
 		Generate(FromReader(r)).
 		Process(
 			Tee(
-				K8sTargetingFilter(f.Includes, f.Excludes),
-				NodeTransformerOf(LabelK8sResource(f.Name, value)),
+				kstream.FilterResource(f.Includes, f.Excludes),
+				NodeTransformerOf(kstream.LabelResource(f.Name, value)),
 			),
 		).
 		Sink(ToWriter(w))
