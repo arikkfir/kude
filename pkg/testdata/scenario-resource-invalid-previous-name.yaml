@@ -1,0 +1,20 @@
+apiVersion: kude.kfirs.com/v1alpha1
+kind: Scenario
+pipeline:
+  apiVersion: kude.kfirs.com/v1alpha2
+  kind: Pipeline
+  resources:
+    - service-account.yaml
+
+resources:
+  service-account.yaml: |-
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      annotations:
+        kude.kfirs.com/previous-name:
+          foo: bar
+      name: test
+
+expectedError: |-
+  pipeline error: failed getting previous name for resource: failed getting annotation: failed to get annotation value: expected value node kind to be 8, got 4

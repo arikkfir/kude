@@ -1,0 +1,24 @@
+apiVersion: kude.kfirs.com/v1alpha1
+kind: Scenario
+pipeline:
+  apiVersion: kude.kfirs.com/v1alpha2
+  kind: Pipeline
+  resources:
+    - service-account.yaml
+
+resources:
+  service-account.yaml: |-
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      annotations:
+        kude.kfirs.com/previous-name: test
+      name: test-123
+
+expected: |-
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    annotations:
+      kude.kfirs.com/previous-name: test
+    name: test-123

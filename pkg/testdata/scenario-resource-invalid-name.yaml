@@ -1,0 +1,18 @@
+apiVersion: kude.kfirs.com/v1alpha1
+kind: Scenario
+pipeline:
+  apiVersion: kude.kfirs.com/v1alpha2
+  kind: Pipeline
+  resources:
+    - service-account.yaml
+
+resources:
+  service-account.yaml: |-
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name:
+        foo: bar
+
+expectedError: |-
+  pipeline error: failed getting name for resource: failed to get name: expected value node kind to be 8, got 4
