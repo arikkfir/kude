@@ -5,7 +5,7 @@ pipeline:
   apiVersion: kude.kfirs.com/v1alpha2
   kind: Pipeline
   resources:
-    - github.com/arikkfir/kude//test/testdata/simple-package-01?ref=main
+    - github.com/arikkfir/kude//pkg/testdata/simple-package-01?ref=main
     - service.yaml
 
 resources:
