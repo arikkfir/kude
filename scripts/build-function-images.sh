@@ -18,7 +18,7 @@ if [[ -z "${FUNCTION}" ]]; then
   for d in "${FUNCTIONS_DIRECTORY}"/*/; do
       if [ -d "${d}" ]; then
         FUNCTION="$(basename "${d}")"
-        docker build -f "${d}Dockerfile" \
+        docker build -f "build/docker/${FUNCTION}-function.dockerfile" \
                      -t "ghcr.io/arikkfir/kude/functions/${FUNCTION}:${COMMIT_SHA}" \
                      --build-arg "function=${FUNCTION}" \
                      "${ROOT_DIRECTORY}"
@@ -27,7 +27,7 @@ if [[ -z "${FUNCTION}" ]]; then
   done
 else
   d="${FUNCTIONS_DIRECTORY}/${FUNCTION}/"
-  docker build -f "${d}Dockerfile" \
+  docker build -f "build/docker/${FUNCTION}-function.dockerfile" \
                -t "ghcr.io/arikkfir/kude/functions/${FUNCTION}:${COMMIT_SHA}" \
                --build-arg "function=${FUNCTION}" \
                "${ROOT_DIRECTORY}"

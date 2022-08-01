@@ -74,7 +74,7 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,mode=max,dest=/tmp/.buildx-cache-new
-          file: cmd/functions/${{ matrix.function }}/Dockerfile
+          file: build/docker/${{ matrix.function }}-function.dockerfile
           labels: ${{ steps.docker-meta.outputs.labels }}
           push: true
           tags: ${{ steps.docker-meta.outputs.tags }}
