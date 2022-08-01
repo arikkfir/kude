@@ -1,1 +1,0 @@
-This command will print known version information about the executing binary and exit.
