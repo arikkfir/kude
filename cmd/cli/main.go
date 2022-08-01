@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "github.com/arikkfir/kude/cmd/cli/commands/build"
 	"github.com/arikkfir/kude/cmd/cli/commands/root"
 	"log"
 	"os"

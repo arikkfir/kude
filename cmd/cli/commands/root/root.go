@@ -2,6 +2,7 @@ package root
 
 import (
 	_ "embed"
+	kude "github.com/arikkfir/kude/pkg"
 	"github.com/spf13/cobra"
 )
 
@@ -14,4 +15,9 @@ var Cmd = &cobra.Command{
 	Short:             "Opinionated Kubernetes Deployment Engine",
 	Long:              longDescription,
 	PersistentPreRunE: populateCommandFlags,
+	Version:           kude.GetVersion().String(),
+}
+
+func init() {
+	Cmd.SetVersionTemplate("{{.Version}}\n")
 }
