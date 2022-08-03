@@ -73,6 +73,7 @@ func (e *executionImpl) ExecuteToWriter(ctx context.Context, w io.Writer) error 
 		defer wg.Done()
 		encoder := yaml.NewEncoder(w)
 		defer encoder.Close()
+		encoder.SetIndent(2)
 		for {
 			rn, ok := <-target
 			if ok {

@@ -10,6 +10,7 @@ import (
 func NodeToString(node *yaml.Node) (string, error) {
 	buffer := &bytes.Buffer{}
 	encoder := yaml.NewEncoder(buffer)
+	encoder.SetIndent(2)
 	if err := encoder.Encode(node); err != nil {
 		return "", fmt.Errorf("failed encoding node: %w", err)
 	}
