@@ -71,6 +71,7 @@ func TestBigResourcesInput(t *testing.T) {
 	t.Logf("Generating input resources YAML from %s resources", enPrinter.Sprint(testBigResourcesCount))
 	actualBuffer := &bytes.Buffer{}
 	actualEncoder := yaml.NewEncoder(actualBuffer)
+	actualEncoder.SetIndent(2)
 	expectedNodes := make([]*kyaml.RNode, 0, testBigResourcesCount)
 	for i := 0; i < testBigResourcesCount; i++ {
 		yamlString := strings.ReplaceAll(testBigResourcesDeploymentPattern, "$$$", strconv.Itoa(i))
@@ -99,6 +100,7 @@ func TestBigResourcesInput(t *testing.T) {
 	sort.Sort(ByType(expectedNodes))
 	expectedBuffer := &bytes.Buffer{}
 	expectedEncoder := yaml.NewEncoder(expectedBuffer)
+	expectedEncoder.SetIndent(2)
 	for _, rn := range expectedNodes {
 		if err := expectedEncoder.Encode(rn.N); err != nil {
 			t.Fatalf("failed to encode expected test YAML: %v", err)
