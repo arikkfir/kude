@@ -56,8 +56,8 @@ github.com/arikkfir/go-getter/v2 v2.1.1-0.20220803160640-66abd65295a5 h1:mf+/pJC
 github.com/arikkfir/go-getter/v2 v2.1.1-0.20220803160640-66abd65295a5/go.mod h1:w65fE5glbccYjndAuj1kA5lnVBGZYEaH0e5qA1kpIks=
 github.com/arikkfir/gstream v0.0.1-alpha03 h1:CwU58wSywh/R7ztlWLBDaBjQSY+GmxQjd1GCouSqZRg=
 github.com/arikkfir/gstream v0.0.1-alpha03/go.mod h1:cW9kDIA9z2V9Rj3H/b9xQ8VeeF2YlJhMvH1rCu/Fdk4=
-github.com/arikkfir/kyaml v0.0.1-alpha03 h1:u9HiWC8rQD/LIaSBhPjQyGr0gGsGbmcpNDLJhsEoKSo=
-github.com/arikkfir/kyaml v0.0.1-alpha03/go.mod h1:MPEMBr459pPfgBOD1vPqA+pN4DTyn5GiG0lTZu5eZqg=
+github.com/arikkfir/kyaml v0.0.1-beta01 h1:XWbb4AIe9qdRte2fkKyEtHRaUPlOfcq3OTNw+ICN7Jk=
+github.com/arikkfir/kyaml v0.0.1-beta01/go.mod h1:MPEMBr459pPfgBOD1vPqA+pN4DTyn5GiG0lTZu5eZqg=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
 github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a/go.mod h1:lB+ZfQJz7igIIfQNfa7Ml4HSf2uFQQRzpGGRXenZAgY=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=

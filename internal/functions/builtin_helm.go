@@ -21,8 +21,8 @@ import (
 )
 
 type Helm struct {
-	Version string   `json:"version" yaml:"version"`
-	Args    []string `json:"args" yaml:"args"`
+	Version string   `mapstructure:"helm-version"`
+	Args    []string `mapstructure:"args"`
 }
 
 func (f *Helm) Invoke(logger *log.Logger, pwd, cacheDir, tempDir string, r io.Reader, w io.Writer) error {

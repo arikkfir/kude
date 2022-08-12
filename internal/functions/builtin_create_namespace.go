@@ -12,7 +12,7 @@ import (
 )
 
 type CreateNamespace struct {
-	Name string `json:"name" yaml:"name"`
+	Name string `mapstructure:"name"`
 }
 
 func (f *CreateNamespace) Invoke(_ *log.Logger, _, _, _ string, r io.Reader, w io.Writer) error {
