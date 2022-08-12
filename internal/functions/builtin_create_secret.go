@@ -19,17 +19,17 @@ import (
 )
 
 type CreateSecretEntry struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
-	Path  string `json:"path"`
+	Key   string `mapstructure:"key"`
+	Value string `mapstructure:"value"`
+	Path  string `mapstructure:"path"`
 }
 
 type CreateSecret struct {
-	Name      string              `json:"name" yaml:"name"`
-	Namespace string              `json:"namespace" yaml:"namespace"`
-	Immutable *bool               `json:"immutable" yaml:"immutable"`
-	Type      string              `json:"type" yaml:"type"`
-	Contents  []CreateSecretEntry `json:"contents" yaml:"contents"`
+	Name      string              `mapstructure:"name"`
+	Namespace string              `mapstructure:"namespace"`
+	Immutable *bool               `mapstructure:"immutable"`
+	Type      string              `mapstructure:"type"`
+	Contents  []CreateSecretEntry `mapstructure:"contents"`
 }
 
 func (f *CreateSecret) Invoke(_ *log.Logger, pwd, _, _ string, r io.Reader, w io.Writer) error {

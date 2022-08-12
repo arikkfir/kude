@@ -12,7 +12,7 @@ import (
 // TODO: download YQ into temp dir instead of bundling it inside the Docker image
 
 type YQ struct {
-	Expression string `json:"expression" yaml:"expression"`
+	Expression string `mapstructure:"expression"`
 }
 
 func (f *YQ) Invoke(logger *log.Logger, pwd, _, _ string, r io.Reader, w io.Writer) error {

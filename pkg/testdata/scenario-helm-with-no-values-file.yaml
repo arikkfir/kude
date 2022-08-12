@@ -7,7 +7,6 @@ pipeline:
     - image: ghcr.io/arikkfir/kude/functions/helm
       network: true
       config:
-        helm-version: 3.8.1
         args:
           - template
           - helm-remote-chart
@@ -18,15 +17,6 @@ pipeline:
           - --repo=https://stefanprodan.github.io/podinfo
           - --skip-tests
           - --version=6.1.0
-          - --values=values.yaml
-      mounts:
-        - values.yaml
-
-resources:
-  values.yaml: |+
-    logLevel: info
-    nodeSelector:
-      purpose: podinfo
 
 expected: |+
   apiVersion: apps/v1
@@ -108,8 +98,6 @@ expected: |+
             volumeMounts:
               - mountPath: /data
                 name: data
-        nodeSelector:
-          purpose: podinfo
         terminationGracePeriodSeconds: 30
         volumes:
           - emptyDir: {}
