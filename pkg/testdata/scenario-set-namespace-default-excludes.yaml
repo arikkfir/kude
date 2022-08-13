@@ -1,0 +1,47 @@
+apiVersion: kude.kfirs.com/v1alpha1
+kind: Scenario
+pipeline:
+  apiVersion: kude.kfirs.com/v1alpha2
+  kind: Pipeline
+  resources:
+    - resources.yaml
+  steps:
+    - image: ghcr.io/arikkfir/kude/functions/set-namespace
+      config:
+        namespace: test
+        includes:
+          - name: t1
+
+resources:
+  resources.yaml: |-
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: ns
+    ---
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: t1
+    ---
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: t2
+
+expected: |-
+  apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: ns
+  ---
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: t2
+  ---
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: t1
+    namespace: test

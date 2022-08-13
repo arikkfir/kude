@@ -24,6 +24,11 @@ func (f *SetNamespace) Invoke(_ *log.Logger, _, _, _ string, r io.Reader, w io.W
 	if f.Namespace == "" {
 		return fmt.Errorf("the '%s' property is required for this function", "name")
 	}
+	f.Excludes = append(f.Excludes, kyaml.TargetingFilter{APIVersion: "v1", Kind: "Namespace"})
+	f.Excludes = append(f.Excludes, kyaml.TargetingFilter{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "ClusterRole"})
+	f.Excludes = append(f.Excludes, kyaml.TargetingFilter{APIVersion: "rbac.authorization.k8s.io/v1", Kind: "ClusterRoleBinding"})
+	f.Excludes = append(f.Excludes, kyaml.TargetingFilter{APIVersion: "admissionregistration.k8s.io/v1", Kind: "ValidatingWebhookConfiguration"})
+	f.Excludes = append(f.Excludes, kyaml.TargetingFilter{APIVersion: "apiextensions.k8s.io/v1", Kind: "CustomResourceDefinition"})
 
 	s := stream.NewStream().
 		Generate(FromReader(r)).
