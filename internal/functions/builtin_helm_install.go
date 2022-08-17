@@ -20,12 +20,12 @@ import (
 	"sync"
 )
 
-type HelmCommand struct {
+type Helm struct {
 	Version string   `mapstructure:"helm-version"`
 	Args    []string `mapstructure:"args"`
 }
 
-func (f *HelmCommand) Invoke(logger *log.Logger, pwd, cacheDir, tempDir string, r io.Reader, w io.Writer) error {
+func (f *Helm) Invoke(logger *log.Logger, pwd, cacheDir, tempDir string, r io.Reader, w io.Writer) error {
 	arch := runtime.GOOS + "-" + runtime.GOARCH
 	if f.Version == "" {
 		f.Version = "3.8.1"
@@ -99,7 +99,7 @@ func (f *HelmCommand) Invoke(logger *log.Logger, pwd, cacheDir, tempDir string, 
 	}
 }
 
-func (f *HelmCommand) downloadHelmArchive(logger *log.Logger, localHelmArchive string) error {
+func (f *Helm) downloadHelmArchive(logger *log.Logger, localHelmArchive string) error {
 	url := fmt.Sprintf("https://get.helm.sh/%s", filepath.Base(localHelmArchive))
 
 	logger.Printf("Downloading archive from: %s", url)
@@ -122,7 +122,7 @@ func (f *HelmCommand) downloadHelmArchive(logger *log.Logger, localHelmArchive s
 	return nil
 }
 
-func (f *HelmCommand) extractHelm(logger *log.Logger, arch, helmArchiveFile, helmFile string) error {
+func (f *Helm) extractHelm(logger *log.Logger, arch, helmArchiveFile, helmFile string) error {
 	logger.Printf("Extracting Helm archive: %s", helmArchiveFile)
 
 	r, err := os.Open(helmArchiveFile)
